@@ -15,19 +15,19 @@ const MAX_FRAME_BYTES := 16 * 1024 * 1024
 const FRAME_HEADER_BYTES := 4
 
 class PeerState:
-	extends RefCounted
+	extends Reference
 	var stream: StreamPeerTCP
-	var buffer: PackedByteArray = PackedByteArray()
-	var expected_len: int = -1   # -1 = waiting on header
-	var handling: bool = false   # true while a command is awaiting a response
+	var buffer = PoolByteArray()
+	var expected_len = -1   # -1 = waiting on header
+	var handling = false   # true while a command is awaiting a response
 
 var tcp_server: TCPServer
 var session_token: String = ""
-var _peers: Array = []   # Array[PeerState]
+var _peers: Array = []   # Array of PeerState
 var _shutting_down: bool = false  # One-shot: set true in shutdown(); never reset (autoload is recreated on next session)
 
 func _ready() -> void:
-	process_mode = Node.PROCESS_MODE_ALWAYS
+	pause_mode = Node.PAUSE_MODE_PROCESS
 	session_token = OS.get_environment("MCP_SESSION_TOKEN")
 	tcp_server = TCPServer.new()
 	var err = tcp_server.listen(PORT, "127.0.0.1")
@@ -37,11 +37,10 @@ func _ready() -> void:
 		print("McpBridge: Listening on TCP port %d" % PORT)
 
 	if OS.get_environment("MCP_BACKGROUND") == "1":
-		DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_NO_FOCUS, true)
-		DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_MOUSE_PASSTHROUGH, true)
-		DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_BORDERLESS, true)
-		DisplayServer.window_set_position(Vector2i(-9999, -9999))
-		print("McpBridge: Background mode active - window hidden, physical input blocked")
+		OS.window_borderless = true
+		OS.window_position = Vector2(-9999, -9999)
+		OS.set_window_always_on_top(true)
+		print("McpBridge: Background mode active - window hidden off-screen")
 
 func _process(_delta: float) -> void:
 	if tcp_server == null or not tcp_server.is_listening():
@@ -75,25 +74,25 @@ func _poll_peer(peer: PeerState) -> void:
 	var available := peer.stream.get_available_bytes()
 	if available > 0:
 		var chunk: Array = peer.stream.get_partial_data(available)
-		# get_partial_data returns [error, PackedByteArray]
+		# get_partial_data returns [error, PoolByteArray]
 		if chunk[0] == OK:
 			peer.buffer.append_array(chunk[1])
 
 	while true:
 		if peer.expected_len < 0:
-			if peer.buffer.size() < FRAME_HEADER_BYTES:
-				return
-			# Read u32 BE header.
-			var header := peer.buffer.slice(0, FRAME_HEADER_BYTES)
-			var b0 := int(header[0])
-			var b1 := int(header[1])
-			var b2 := int(header[2])
-			var b3 := int(header[3])
-			peer.expected_len = (b0 << 24) | (b1 << 16) | (b2 << 8) | b3
-			peer.buffer = peer.buffer.slice(FRAME_HEADER_BYTES)
-			if peer.expected_len > MAX_FRAME_BYTES:
-				push_error("McpBridge: Frame header exceeds limit (%d), closing peer" % peer.expected_len)
-				peer.stream.disconnect_from_host()
+		if peer.buffer.size() < FRAME_HEADER_BYTES:
+			return
+		# Read u32 BE header.
+		var header = peer.buffer.subarray(0, FRAME_HEADER_BYTES)
+		var b0 := int(header[0])
+		var b1 := int(header[1])
+		var b2 := int(header[2])
+		var b3 := int(header[3])
+		peer.expected_len = (b0 << 24) | (b1 << 16) | (b2 << 8) | b3
+		peer.buffer = peer.buffer.subarray(FRAME_HEADER_BYTES, peer.buffer.size())
+		if peer.expected_len > MAX_FRAME_BYTES:
+			push_error("McpBridge: Frame header exceeds limit (%d), closing peer" % peer.expected_len)
+			peer.stream.disconnect_from_host()
 				peer.stream = null
 				return
 
@@ -102,15 +101,15 @@ func _poll_peer(peer: PeerState) -> void:
 		if peer.buffer.size() < peer.expected_len:
 			return
 
-		var frame_bytes := peer.buffer.slice(0, peer.expected_len)
-		peer.buffer = peer.buffer.slice(peer.expected_len)
+		var frame_bytes = peer.buffer.subarray(0, peer.expected_len)
+		peer.buffer = peer.buffer.subarray(peer.expected_len, peer.buffer.size())
 		peer.expected_len = -1
 
 		var data := frame_bytes.get_string_from_utf8().strip_edges()
 		peer.handling = true
 		_dispatch_command(peer, data)
-		# _dispatch_command awaits internally on async branches (input, run_script,
-		# screenshot, shutdown), so control returns here at the first inner await.
+		# _dispatch_command yields internally on async branches (input, run_script,
+		# screenshot, shutdown), so control returns here at the first inner yield.
 		# `peer.handling` is the gate that blocks re-entry; it is cleared by
 		# `_send_response` once the handler completes.
 
@@ -125,13 +124,12 @@ func _dispatch_command(peer: PeerState, data: String) -> void:
 		_send_response(peer, {"error": "Non-JSON frame (expected a JSON command object)"})
 		return
 
-	var json = JSON.new()
-	var err = json.parse(data)
-	if err != OK:
-		_send_response(peer, {"error": "Invalid JSON: %s" % json.get_error_message()})
+	var parsed = JSON.parse(data)
+	if parsed.error != OK:
+		_send_response(peer, {"error": "Invalid JSON: %s" % parsed.error_string})
 		return
 
-	var payload = json.data
+	var payload = parsed.result
 	if typeof(payload) != TYPE_DICTIONARY:
 		_send_response(peer, {"error": "Expected JSON object"})
 		return
@@ -143,18 +141,26 @@ func _dispatch_command(peer: PeerState, data: String) -> void:
 			if typeof(actions) != TYPE_ARRAY:
 				_send_response(peer, {"error": "actions must be an array"})
 				return
-			if actions.is_empty():
+			if actions.size() == 0:
 				_send_response(peer, {"error": "actions array is empty"})
 				return
-			await _handle_input(peer, actions)
+			var input_state = _handle_input(peer, actions)
+			if input_state is GDScriptFunctionState:
+				yield(input_state, "completed")
 		"get_ui_elements":
 			_handle_get_ui_elements(peer, payload)
 		"run_script":
-			await _handle_run_script(peer, payload)
+			var script_state = _handle_run_script(peer, payload)
+			if script_state is GDScriptFunctionState:
+				yield(script_state, "completed")
 		"screenshot":
-			await _handle_screenshot(peer, payload)
+			var shot_state = _handle_screenshot(peer, payload)
+			if shot_state is GDScriptFunctionState:
+				yield(shot_state, "completed")
 		"shutdown":
-			await _handle_shutdown(peer)
+			var shutdown_state = _handle_shutdown(peer)
+			if shutdown_state is GDScriptFunctionState:
+				yield(shutdown_state, "completed")
 		"ping":
 			_send_response(peer, {"status": "pong", "session_token": session_token, "project_path": ProjectSettings.globalize_path("res://")})
 		_:
@@ -163,21 +169,26 @@ func _dispatch_command(peer: PeerState, data: String) -> void:
 # --- Screenshot ---
 
 func _handle_screenshot(peer: PeerState, payload: Dictionary = {}) -> void:
-	await RenderingServer.frame_post_draw
+	yield(VisualServer, "frame_post_draw")
 
 	var viewport := get_viewport()
 	if viewport == null:
 		_send_response(peer, {"error": "No viewport available"})
 		return
 
-	var image := viewport.get_texture().get_image()
+	var image := viewport.get_texture().get_data()
 	if image == null:
 		_send_response(peer, {"error": "Failed to capture viewport image"})
 		return
+	image.flip_y()
 
-	var timestamp := str(Time.get_unix_time_from_system()).replace(".", "_")
+	var timestamp := str(OS.get_unix_time()).replace(".", "_")
 	var screenshot_dir := ProjectSettings.globalize_path("res://.mcp/screenshots")
-	DirAccess.make_dir_recursive_absolute(screenshot_dir)
+	var dir = Directory.new()
+	var dir_err = dir.make_dir_recursive(screenshot_dir)
+	if dir_err != OK:
+		_send_response(peer, {"error": "Failed to create screenshot directory (error %d)" % dir_err})
+		return
 	var file_path := screenshot_dir.path_join("screenshot_%s.png" % timestamp)
 
 	var save_err := image.save_png(file_path)
@@ -192,22 +203,22 @@ func _handle_screenshot(peer: PeerState, payload: Dictionary = {}) -> void:
 		"height": image.get_height(),
 	}
 
-	var preview_max_width: int = int(payload.get("preview_max_width", 0))
-	var preview_max_height: int = int(payload.get("preview_max_height", 0))
+	var preview_max_width = int(payload.get("preview_max_width", 0))
+	var preview_max_height = int(payload.get("preview_max_height", 0))
 	if preview_max_width > 0 and preview_max_height > 0:
-		var scale: float = min(
+		var scale = min(
 			1.0,
 			min(
 				float(preview_max_width) / float(image.get_width()),
 				float(preview_max_height) / float(image.get_height())
 			)
 		)
-		var preview_width: int = max(1, int(floor(float(image.get_width()) * scale)))
-		var preview_height: int = max(1, int(floor(float(image.get_height()) * scale)))
+		var preview_width = max(1, int(floor(float(image.get_width()) * scale)))
+		var preview_height = max(1, int(floor(float(image.get_height()) * scale)))
 		# Full image already saved to disk — resize in-place to avoid a redundant copy
-		image.resize(preview_width, preview_height, Image.INTERPOLATE_LANCZOS)
-		var preview_path: String = screenshot_dir.path_join("screenshot_%s_preview.png" % timestamp)
-		var preview_err: Error = image.save_png(preview_path)
+		image.resize(preview_width, preview_height, Image.INTERPOLATE_CUBIC)
+		var preview_path = screenshot_dir.plus_file("screenshot_%s_preview.png" % timestamp)
+		var preview_err = image.save_png(preview_path)
 		if preview_err != OK:
 			_send_response(peer, {"error": "Failed to save screenshot preview (error %d)" % preview_err})
 			return
@@ -256,7 +267,7 @@ func _handle_input(peer: PeerState, actions: Array) -> void:
 				var ms = action.get("ms", 0)
 				if typeof(ms) == TYPE_FLOAT or typeof(ms) == TYPE_INT:
 					if ms > 0:
-						await get_tree().create_timer(ms / 1000.0).timeout
+						yield(get_tree().create_timer(ms / 1000.0), "timeout")
 				else:
 					error_msg = "Action %d (wait): ms must be a number" % processed
 					break
@@ -269,8 +280,8 @@ func _handle_input(peer: PeerState, actions: Array) -> void:
 	# Allow queued input events to dispatch and any signal handlers
 	# (and their runtime errors) to fire before we reply, so the
 	# Node-side stderr scan in sendCommandWithErrors sees them.
-	await get_tree().process_frame
-	await get_tree().process_frame
+	yield(get_tree(), "idle_frame")
+	yield(get_tree(), "idle_frame")
 
 	if error_msg != "":
 		_send_response(peer, {"error": error_msg, "actions_processed": processed})
@@ -282,47 +293,47 @@ func _inject_key(action: Dictionary) -> String:
 	if key_name == "":
 		return "key name is required"
 
-	var keycode = OS.find_keycode_from_string(key_name)
-	if keycode == KEY_NONE:
+	var scancode = OS.find_scancode_from_string(key_name)
+	if scancode == KEY_NONE:
 		return "unrecognized key name: '%s'" % key_name
 
 	var event = InputEventKey.new()
-	event.keycode = keycode
-	event.physical_keycode = keycode
+	event.scancode = scancode
+	event.physical_scancode = scancode
 	event.pressed = action.get("pressed", true)
 	event.echo = false
-	event.shift_pressed = action.get("shift", false)
-	event.ctrl_pressed = action.get("ctrl", false)
-	event.alt_pressed = action.get("alt", false)
+	event.shift = action.get("shift", false)
+	event.control = action.get("ctrl", false)
+	event.alt = action.get("alt", false)
 	# Text-entry Controls (LineEdit, TextEdit) consume `event.unicode`, not just
-	# the keycode — without it, typing into a focused LineEdit produces nothing.
+	# the scancode — without it, typing into a focused LineEdit produces nothing.
 	# Auto-derive for ASCII letters and digits; fall back to caller-supplied
 	# `unicode` for symbols and non-ASCII.
 	if action.has("unicode"):
 		event.unicode = int(action.unicode)
-	elif keycode >= KEY_A and keycode <= KEY_Z:
-		event.unicode = keycode if event.shift_pressed else (keycode + 32)
-	elif keycode >= KEY_0 and keycode <= KEY_9:
-		event.unicode = keycode
+	elif scancode >= KEY_A and scancode <= KEY_Z:
+		event.unicode = scancode if event.shift else (scancode + 32)
+	elif scancode >= KEY_0 and scancode <= KEY_9:
+		event.unicode = scancode
 	Input.parse_input_event(event)
 	return ""
 
 func _resolve_button_name(button_name: String) -> Array:
 	match button_name:
 		"left":
-			return [MOUSE_BUTTON_LEFT, ""]
+			return [BUTTON_LEFT, ""]
 		"right":
-			return [MOUSE_BUTTON_RIGHT, ""]
+			return [BUTTON_RIGHT, ""]
 		"middle":
-			return [MOUSE_BUTTON_MIDDLE, ""]
+			return [BUTTON_MIDDLE, ""]
 		_:
-			return [MOUSE_BUTTON_NONE, "unknown button: '%s' (use 'left', 'right', or 'middle')" % button_name]
+			return [BUTTON_NONE, "unknown button: '%s' (use 'left', 'right', or 'middle')" % button_name]
 
 func _inject_mouse_button(action: Dictionary) -> String:
 	var button_result := _resolve_button_name(action.get("button", "left"))
 	if button_result[1] != "":
 		return button_result[1]
-	var button_index: MouseButton = button_result[0]
+	var button_index = button_result[0]
 
 	var pos = Vector2(action.get("x", 0), action.get("y", 0))
 	var double_click = action.get("double_click", false)
@@ -334,7 +345,7 @@ func _inject_mouse_button(action: Dictionary) -> String:
 		event.pressed = action.get("pressed")
 		event.position = pos
 		event.global_position = pos
-		event.double_click = double_click
+		event.doubleclick = double_click
 		Input.parse_input_event(event)
 	else:
 		# Auto press + release (click)
@@ -343,7 +354,7 @@ func _inject_mouse_button(action: Dictionary) -> String:
 		press.pressed = true
 		press.position = pos
 		press.global_position = pos
-		press.double_click = double_click
+		press.doubleclick = double_click
 		Input.parse_input_event(press)
 
 		var release = InputEventMouseButton.new()
@@ -391,8 +402,8 @@ func _inject_click_element(action: Dictionary) -> String:
 	var button_result := _resolve_button_name(action.get("button", "left"))
 	if button_result[1] != "":
 		return button_result[1]
-	var button_index: MouseButton = button_result[0]
-	var double_click: bool = action.get("double_click", false)
+	var button_index = button_result[0]
+	var double_click = action.get("double_click", false)
 	var rect := target.get_global_rect()
 	var center := rect.get_center()
 
@@ -401,7 +412,7 @@ func _inject_click_element(action: Dictionary) -> String:
 	press.pressed = true
 	press.position = center
 	press.global_position = center
-	press.double_click = double_click
+	press.doubleclick = double_click
 	Input.parse_input_event(press)
 
 	var release := InputEventMouseButton.new()
@@ -416,14 +427,14 @@ func _inject_click_element(action: Dictionary) -> String:
 # --- UI Element Discovery ---
 
 func _handle_get_ui_elements(peer: PeerState, payload: Dictionary) -> void:
-	var visible_only: bool = payload.get("visible_only", true)
-	var type_filter: String = payload.get("type_filter", "")
+	var visible_only = payload.get("visible_only", true)
+	var type_filter = payload.get("type_filter", "")
 	var root := get_tree().root
-	var elements: Array[Dictionary] = []
+	var elements = []
 	_collect_control_nodes(root, elements, visible_only, type_filter)
 	_send_response(peer, {"elements": elements})
 
-func _collect_control_nodes(node: Node, elements: Array[Dictionary], visible_only: bool, type_filter: String = "") -> void:
+func _collect_control_nodes(node: Node, elements: Array, visible_only: bool, type_filter: String = "") -> void:
 	if node is Control:
 		var ctrl := node as Control
 		if visible_only and not ctrl.is_visible_in_tree():
@@ -462,8 +473,8 @@ func _collect_control_nodes(node: Node, elements: Array[Dictionary], visible_onl
 		if ctrl is BaseButton:
 			element["disabled"] = (ctrl as BaseButton).disabled
 		# Tooltip
-		if ctrl.tooltip_text != "":
-			element["tooltip"] = ctrl.tooltip_text
+		if ctrl.hint_tooltip != "":
+			element["tooltip"] = ctrl.hint_tooltip
 		elements.append(element)
 	for child in node.get_children():
 		_collect_control_nodes(child, elements, visible_only, type_filter)
@@ -480,9 +491,9 @@ func _find_control_by_identifier(identifier: String) -> Control:
 	if node is Control:
 		return node as Control
 	# BFS: match by node name
-	var queue: Array[Node] = []
+	var queue = []
 	queue.append(root)
-	while not queue.is_empty():
+	while queue.size() > 0:
 		var current: Node = queue.pop_front()
 		if current is Control:
 			if String(current.name) == identifier:
@@ -514,18 +525,20 @@ func _handle_run_script(peer: PeerState, payload: Dictionary) -> void:
 		return
 
 	if not instance.has_method("execute"):
-		if instance is RefCounted:
-			instance = null  # Let RefCounted free itself
+		if instance is Reference:
+			instance = null  # Let Reference free itself
 		else:
 			instance.free()
 		_send_response(peer, {"error": "Script must define func execute(scene_tree: SceneTree) -> Variant"})
 		return
 
-	# Execute (await in case the user's script uses async/await internally)
-	var result = await instance.execute(get_tree())
+	# Execute and yield if the user's script returns a GDScriptFunctionState.
+	var result = instance.execute(get_tree())
+	if result is GDScriptFunctionState:
+		result = yield(result, "completed")
 
 	# Clean up
-	if instance is RefCounted:
+	if instance is Reference:
 		instance = null
 	else:
 		instance.free()
@@ -534,7 +547,7 @@ func _handle_run_script(peer: PeerState, payload: Dictionary) -> void:
 	var serialized = _serialize_value(result)
 	_send_response(peer, {"success": true, "result": serialized})
 
-func _serialize_value(value: Variant) -> Variant:
+func _serialize_value(value):
 	if value == null:
 		return null
 
@@ -544,14 +557,8 @@ func _serialize_value(value: Variant) -> Variant:
 		TYPE_VECTOR2:
 			var v: Vector2 = value
 			return {"x": v.x, "y": v.y}
-		TYPE_VECTOR2I:
-			var v: Vector2i = value
-			return {"x": v.x, "y": v.y}
 		TYPE_VECTOR3:
 			var v: Vector3 = value
-			return {"x": v.x, "y": v.y, "z": v.z}
-		TYPE_VECTOR3I:
-			var v: Vector3i = value
 			return {"x": v.x, "y": v.y, "z": v.z}
 		TYPE_COLOR:
 			var c: Color = value
@@ -589,8 +596,8 @@ func _handle_shutdown(peer: PeerState) -> void:
 	# arriving in this 2-frame window would dispatch against a peer that's
 	# about to close; the response write fails gracefully and the Node side
 	# sees BridgeDisconnectedError. MCP serializes calls so this is theoretical.
-	await get_tree().process_frame
-	await get_tree().process_frame
+	yield(get_tree(), "idle_frame")
+	yield(get_tree(), "idle_frame")
 	_close_all_peers()
 	if tcp_server != null:
 		tcp_server.stop()
@@ -600,14 +607,14 @@ func _handle_shutdown(peer: PeerState) -> void:
 # --- Utility ---
 
 func _send_response(peer: PeerState, data: Dictionary) -> void:
-	var resp := JSON.stringify(data)
-	var body := resp.to_utf8_buffer()
+	var resp := to_json(data)
+	var body := resp.to_utf8()
 	if body.size() > MAX_FRAME_BYTES:
 		push_error("McpBridge: Response exceeds %d bytes; dropping" % MAX_FRAME_BYTES)
 		peer.handling = false
 		return
 	if peer.stream != null and peer.stream.get_status() == StreamPeerTCP.STATUS_CONNECTED:
-		var header := PackedByteArray()
+		var header := PoolByteArray()
 		header.resize(FRAME_HEADER_BYTES)
 		var size := body.size()
 		header[0] = (size >> 24) & 0xFF

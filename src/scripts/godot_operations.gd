@@ -10,9 +10,9 @@ func _init():
 	# Check for debug flag
 	debug_mode = "--debug-godot" in args
 
-	# SceneTree.quit(n) only schedules a quit for end-of-frame in Godot 4.
-	# Every quit(1) must be followed by `return` to halt the failing path,
-	# otherwise control falls through into success-print + scene save.
+	# SceneTree.quit schedules a quit for end-of-frame. Every quit(1) must be
+	# followed by `return` to halt the failing path, otherwise control falls
+	# through into success-print + scene save.
 	# Find the script argument and determine the positions of operation and params
 	var script_index = args.find("--script")
 	if script_index == -1:
@@ -37,15 +37,14 @@ func _init():
 	log_info("Operation: " + operation)
 	log_debug("Params JSON: " + params_json)
 
-	var json = JSON.new()
-	var error = json.parse(params_json)
+	var parse_result = JSON.parse(params_json)
 	var params = null
 
-	if error == OK:
-		params = json.get_data()
+	if parse_result.error == OK:
+		params = parse_result.result
 	else:
 		log_error("Failed to parse JSON parameters: " + params_json)
-		log_error("JSON Error: " + json.get_error_message() + " at line " + str(json.get_error_line()))
+		log_error("JSON Error: " + parse_result.error_string + " at line " + str(parse_result.error_line))
 		quit(1)
 		return
 
@@ -156,7 +155,7 @@ func get_script_by_name(name_of_class):
 
 # Instantiate a class by name
 func instantiate_class(name_of_class):
-	if name_of_class.is_empty():
+	if name_of_class == "":
 		printerr("Cannot instantiate class: name is empty")
 		return null
 
@@ -166,11 +165,11 @@ func instantiate_class(name_of_class):
 
 	if ClassDB.class_exists(name_of_class):
 		if debug_mode:
-			printerr("Class exists in ClassDB, using ClassDB.instantiate()")
-		if ClassDB.can_instantiate(name_of_class):
-			result = ClassDB.instantiate(name_of_class)
+			printerr("Class exists in ClassDB, using ClassDB.instance()")
+		if ClassDB.can_instance(name_of_class):
+			result = ClassDB.instance(name_of_class)
 			if result == null:
-				printerr("ClassDB.instantiate() returned null for class: " + name_of_class)
+				printerr("ClassDB.instance() returned null for class: " + name_of_class)
 		else:
 			printerr("Class exists but cannot be instantiated: " + name_of_class)
 	else:
@@ -198,12 +197,16 @@ func normalize_scene_path(scene_path: String) -> String:
 		return "res://" + scene_path
 	return scene_path
 
+func _file_exists(path: String) -> bool:
+	var file = File.new()
+	return file.file_exists(path)
+
 # Helper to load and instantiate a scene
 func load_scene_instance(scene_path: String):
 	var full_path = normalize_scene_path(scene_path)
 	log_debug("Loading scene from: " + full_path)
 
-	if not FileAccess.file_exists(full_path):
+	if not _file_exists(full_path):
 		log_error("Scene file does not exist: " + full_path)
 		return null
 
@@ -212,7 +215,7 @@ func load_scene_instance(scene_path: String):
 		log_error("Failed to load scene: " + full_path)
 		return null
 
-	var instance = scene.instantiate()
+	var instance = scene.instance()
 	if not instance:
 		log_error("Failed to instantiate scene: " + full_path)
 		return null
@@ -236,7 +239,7 @@ func find_node_by_path(scene_root: Node, node_path: String) -> Node:
 		if first_segment == "root" or first_segment == String(scene_root.name):
 			path = path.substr(first_slash + 1)
 
-	if path.is_empty():
+	if path == "":
 		return scene_root
 
 	return scene_root.get_node_or_null(path)
@@ -263,15 +266,10 @@ func save_scene_to_path(scene_root: Node, save_path: String) -> bool:
 # if needed. Returns true on success or when the directory already exists.
 func _ensure_res_dir(full_res_path: String) -> bool:
 	var dir_path = full_res_path.get_base_dir()
-	if dir_path == "res://" or dir_path.is_empty():
+	if dir_path == "res://" or dir_path == "":
 		return true
-	var dir = DirAccess.open("res://")
-	if not dir:
-		return false
-	var relative_dir = dir_path.substr(6) if dir_path.begins_with("res://") else dir_path
-	if relative_dir.is_empty() or dir.dir_exists(relative_dir):
-		return true
-	return dir.make_dir_recursive(relative_dir) == OK
+	var dir = Directory.new()
+	return dir.make_dir_recursive(dir_path) == OK
 
 # Create a new scene with a specified root node type
 func create_scene(params):
@@ -342,14 +340,14 @@ func _apply_load_sprite(scene_root: Node, op: Dictionary) -> Dictionary:
 	var sprite_node = find_node_by_path(scene_root, op.node_path)
 	if not sprite_node:
 		return {"ok": false, "error": "Node not found: " + op.node_path}
-	if not (sprite_node is Sprite2D or sprite_node is Sprite3D or sprite_node is TextureRect):
+	if not (sprite_node is Sprite or sprite_node is Sprite3D or sprite_node is TextureRect):
 		return {"ok": false, "error": "Node is not a sprite-compatible type: " + sprite_node.get_class()}
 	var full_texture_path = normalize_scene_path(op.texture_path)
 	var texture = load(full_texture_path)
 	if not texture:
 		return {"ok": false, "error": "Failed to load texture: " + full_texture_path}
-	if not (texture is Texture2D):
-		return {"ok": false, "error": "Loaded resource is not a Texture2D: " + full_texture_path}
+	if not (texture is Texture):
+		return {"ok": false, "error": "Loaded resource is not a Texture: " + full_texture_path}
 	# A texture without a resource_path is a runtime-only object — PackedScene.pack()
 	# cannot serialize it, so the assignment would silently vanish on save.
 	if texture.resource_path == "":
@@ -378,7 +376,7 @@ func add_node(params):
 		quit(1)
 		return
 
-# Load a sprite into a Sprite2D node
+# Load a sprite into a Sprite node
 func load_sprite(params):
 	printerr("Loading sprite into scene: " + params.scene_path)
 
@@ -421,11 +419,11 @@ func export_mesh_library(params):
 			continue
 
 		var mesh_instance = null
-		if child is MeshInstance3D:
+		if child is MeshInstance:
 			mesh_instance = child
 		else:
 			for descendant in child.get_children():
-				if descendant is MeshInstance3D:
+				if descendant is MeshInstance:
 					mesh_instance = descendant
 					break
 
@@ -435,7 +433,7 @@ func export_mesh_library(params):
 			mesh_library.set_item_mesh(item_id, mesh_instance.mesh)
 
 			for collision_child in child.get_children():
-				if collision_child is CollisionShape3D and collision_child.shape:
+				if collision_child is CollisionShape and collision_child.shape:
 					mesh_library.set_item_shapes(item_id, [collision_child.shape])
 					break
 
@@ -515,16 +513,16 @@ func delete_nodes(params):
 
 	if any_deleted:
 		if not save_scene_to_path(scene_root, params.scene_path):
-			print(JSON.stringify({"error": "Failed to save scene after deleting nodes", "results": results}))
+			print(to_json({"error": "Failed to save scene after deleting nodes", "results": results}))
 			return
 
-	print(JSON.stringify({"results": results}))
+	print(to_json({"results": results}))
 
 # Update one or more node properties in a single headless process (saves once)
 func set_node_properties(params: Dictionary) -> void:
 	var scene_root = load_scene_instance(params.scene_path)
 	if not scene_root:
-		print(JSON.stringify({"error": "Failed to load scene: " + params.scene_path, "results": []}))
+		print(to_json({"error": "Failed to load scene: " + params.scene_path, "results": []}))
 		return
 
 	var abort_on_error = params.get("abort_on_error", false)
@@ -548,16 +546,16 @@ func set_node_properties(params: Dictionary) -> void:
 
 	if any_set:
 		if not save_scene_to_path(scene_root, params.scene_path):
-			print(JSON.stringify({"error": "Failed to save scene after updates", "results": results}))
+			print(to_json({"error": "Failed to save scene after updates", "results": results}))
 			return
 
-	print(JSON.stringify({"results": results}))
+	print(to_json({"results": results}))
 
 # Get properties from one or more nodes in a single headless process (loads scene once)
 func get_node_properties(params: Dictionary) -> void:
 	var scene_root = load_scene_instance(params.scene_path)
 	if not scene_root:
-		print(JSON.stringify({"error": "Failed to load scene: " + params.scene_path, "results": []}))
+		print(to_json({"error": "Failed to load scene: " + params.scene_path, "results": []}))
 		return
 
 	var results: Array = []
@@ -581,7 +579,7 @@ func get_node_properties(params: Dictionary) -> void:
 		if inst:
 			inst.free()
 
-	print(JSON.stringify({"results": results}))
+	print(to_json({"results": results}))
 
 # Get full hierarchical tree structure of a scene
 func get_scene_tree(params):
@@ -605,10 +603,10 @@ func get_scene_tree(params):
 		max_depth = int(params.max_depth)
 
 	var tree = build_tree_recursive(tree_root, "", 0, max_depth)
-	print(JSON.stringify(tree))
+	print(to_json(tree))
 
 func build_tree_recursive(node: Node, path: String, depth: int = 0, max_depth: int = -1) -> Dictionary:
-	var node_path = path + "/" + node.name if not path.is_empty() else node.name
+	var node_path = path + "/" + node.name if path != "" else node.name
 
 	var children = []
 	if max_depth < 0 or depth < max_depth:
@@ -645,7 +643,7 @@ func attach_script(params):
 
 	var full_script_path = normalize_scene_path(params.script_path)
 
-	if not FileAccess.file_exists(full_script_path):
+	if not _file_exists(full_script_path):
 		log_error("Script file does not exist: " + full_script_path)
 		quit(1)
 		return
@@ -704,7 +702,7 @@ func duplicate_node(params):
 	duplicate.owner = scene_root
 	# Iterative BFS to set owner on all descendants — avoids recursion depth.
 	var queue: Array = duplicate.get_children()
-	while not queue.is_empty():
+	while queue.size() > 0:
 		var current = queue.pop_front()
 		current.owner = scene_root
 		queue.append_array(current.get_children())
@@ -734,17 +732,21 @@ func get_node_signals(params):
 		var sig_name = sig["name"]
 		var connections = []
 		for conn in node.get_signal_connection_list(sig_name):
+			var target_obj = conn.get("target", null)
+			var target_path = "unknown"
+			if target_obj:
+				target_path = str(target_obj.get_path())
 			connections.append({
 				"signal": sig_name,
-				"target": str(conn["callable"].get_object().get_path()) if conn["callable"].get_object() else "unknown",
-				"method": conn["callable"].get_method()
+				"target": target_path,
+				"method": conn.get("method", "")
 			})
 		signals.append({
 			"name": sig_name,
 			"connections": connections
 		})
 
-	print(JSON.stringify({
+	print(to_json({
 		"nodePath": params.node_path,
 		"nodeType": node.get_class(),
 		"signals": signals
@@ -781,7 +783,7 @@ func connect_signal(params):
 
 	# CONNECT_PERSIST is required for the connection to be serialized into the
 	# packed scene; without it the connection is runtime-only and disappears on save.
-	var err = source.connect(params.signal, Callable(target, params.method), CONNECT_PERSIST)
+	var err = source.connect(params.signal, target, params.method, [], CONNECT_PERSIST)
 	if err != OK:
 		log_error("Failed to connect signal: " + str(err))
 		quit(1)
@@ -813,12 +815,12 @@ func disconnect_signal(params):
 		quit(1)
 		return
 
-	if not source.is_connected(params.signal, Callable(target, params.method)):
+	if not source.is_connected(params.signal, target, params.method):
 		log_error("Signal connection does not exist")
 		quit(1)
 		return
 
-	source.disconnect(params.signal, Callable(target, params.method))
+	source.disconnect(params.signal, target, params.method)
 
 	if save_scene_to_path(scene_root, params.scene_path):
 		print("Signal '" + params.signal + "' disconnected from '" + params.target_node_path + "." + params.method + "'")
@@ -838,7 +840,7 @@ func validate_resource(params):
 		quit(1)
 		return
 	var result = _validate_single(params)
-	print(JSON.stringify({"valid": result.valid, "errors": result.errors}))
+	print(to_json({"valid": result.valid, "errors": result.errors}))
 
 # ============================================
 # BATCH OPERATIONS
@@ -893,7 +895,7 @@ func _collect_node_properties(node: Node, changed_only: bool, defaults_cache: Di
 				properties[prop_name] = {"r": value.r, "g": value.g, "b": value.b, "a": value.a}
 			elif value is Transform2D:
 				properties[prop_name] = str(value)
-			elif value is Transform3D:
+			elif value is Transform:
 				properties[prop_name] = str(value)
 			elif value is Object:
 				if value:
@@ -911,14 +913,14 @@ func _collect_node_properties(node: Node, changed_only: bool, defaults_cache: Di
 func _validate_single(target: Dictionary) -> Dictionary:
 	if target.has("script_path") and target.script_path != "":
 		var path = normalize_scene_path(target.script_path)
-		if not FileAccess.file_exists(path):
+		if not _file_exists(path):
 			return {"valid": false, "errors": [{"message": "File not found: " + path}], "target": target.script_path}
 		var resource = load(path)
 		# Actual parse errors go to stderr and are parsed by TypeScript
 		return {"valid": resource != null, "errors": [], "target": target.script_path}
 	elif target.has("scene_path") and target.scene_path != "":
 		var path = normalize_scene_path(target.scene_path)
-		if not FileAccess.file_exists(path):
+		if not _file_exists(path):
 			return {"valid": false, "errors": [{"message": "File not found: " + path}], "target": target.scene_path}
 		var scene = load(path)
 		return {"valid": scene != null, "errors": [], "target": target.scene_path}
@@ -930,7 +932,7 @@ func validate_batch(params: Dictionary) -> void:
 	var results: Array = []
 	for target in params.targets:
 		results.append(_validate_single(target))
-	print(JSON.stringify({"results": results}))
+	print(to_json({"results": results}))
 
 # Execute multiple scene operations in a single headless process
 # Scenes are loaded once and cached in memory; mutations accumulate until a save op
@@ -1000,4 +1002,4 @@ func batch_scene_operations(params: Dictionary) -> void:
 	for scene_path in scene_cache:
 		save_scene_to_path(scene_cache[scene_path], scene_path)
 
-	print(JSON.stringify({"results": results}))
+	print(to_json({"results": results}))
