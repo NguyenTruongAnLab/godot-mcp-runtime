@@ -2,11 +2,11 @@
 
 ## `godot-project/`
 
-A minimal Godot 4.4 project used as a stable test surface for MCP tools. Committed to the repo (unlike `.test-project/`, which is gitignored for ad-hoc local testing) so contributors and CI share the same baseline.
+A minimal Godot 3.6 project used as a stable test surface for MCP tools. Committed to the repo (unlike `.test-project/`, which is gitignored for ad-hoc local testing) so contributors and CI share the same baseline.
 
 Contents:
 - `project.godot` — minimal config, references `main.tscn` as main scene
-- `main.tscn` — `Node2D` root with `Label` and `Sprite2D` children
+- `main.tscn` — `Node2D` root with `Label` and `Sprite` child
 - `placeholder.gd`, `placeholder.png` — empty placeholder files used by handler tests that exercise `attach_script` / `load_sprite` runner-throws paths
 
 Use it from tests by importing the path helper:
