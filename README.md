@@ -12,7 +12,7 @@
   <a href="https://nodejs.org/"><img src="https://img.shields.io/node/v/godot-mcp-runtime" alt="Node.js"></a>
 </p>
 
-A lightweight [MCP](https://modelcontextprotocol.io/) server that pairs comprehensive headless editing with full runtime control over a [Godot](https://godotengine.org/) 4.x project. Scene, node, autoload, and validation ops cover everything short of the most niche corners of the engine; the runtime bridge adds screenshots, input simulation, UI discovery, and live GDScript against the running scene tree.
+A lightweight [MCP](https://modelcontextprotocol.io/) server that pairs comprehensive headless editing with full runtime control over a [Godot](https://godotengine.org/) 3.x project (3.6.2 recommended). Scene, node, autoload, and validation ops cover everything short of the most niche corners of the engine; the runtime bridge adds screenshots, input simulation, UI discovery, and live GDScript against the running scene tree.
 
 <p align="center"><img src="docs/assets/demo.gif" alt="Agent driving a Godot game via MCP runtime tools" width="1000"></p>
 
@@ -51,7 +51,7 @@ Think of it as [Playwright MCP](https://github.com/microsoft/playwright-mcp), bu
 - **UI discovery:** Walk the live scene tree and collect every visible Control node with its position, type, text content, and disabled state
 - **Live script execution:** Compile and run arbitrary GDScript with full SceneTree access while the game is running
 
-**Background mode.** Pass `background: true` to `run_project` and the Godot window moves off-screen (positioned at `(-9999, -9999)`) with physical input blocked: borderless, unfocusable, mouse-passthrough. Programmatic input, screenshots, and all runtime tools work exactly the same. Useful for automated agent-driven testing where the window shouldn't be visible or interactive.
+**Background mode.** Pass `background: true` to `run_project` and the Godot window moves off-screen (positioned at `(-9999, -9999)`). Programmatic input, screenshots, and all runtime tools work exactly the same. Useful for automated agent-driven testing where the window shouldn't be visible.
 
 **Manual attach mode.** When something other than MCP launches the game (a CI pipeline, an external debugger, your own shell), call `attach_project` first. It injects the bridge and marks the project active without spawning Godot, so when you launch the game manually, runtime tools work against it. Use `detach_project` when done.
 
@@ -65,7 +65,7 @@ The bridge cleans itself up automatically when `stop_project` or `detach_project
 ### Prerequisites
 
 - [Node.js](https://nodejs.org/) v20+
-- [Godot 4.x](https://godotengine.org/)
+- [Godot 3.5+ (3.6.2 recommended)](https://godotengine.org/)
 
 That's it. No Godot addon, no project modifications.
 
@@ -140,16 +140,16 @@ If Godot is on your `PATH`, you can omit `GODOT_PATH` entirely. The server will 
 > **Windows path gotchas.** `GODOT_PATH` must point at the Godot executable itself, not its install folder. Backslashes in JSON must be escaped or replaced with forward slashes:
 >
 > ```json
-> "GODOT_PATH": "D:\\Godot\\Godot_v4.4-stable_win64.exe"
+> "GODOT_PATH": "D:\\Godot\\Godot_v3.6.2-stable_win64.exe"
 > // or equivalently
-> "GODOT_PATH": "D:/Godot/Godot_v4.4-stable_win64.exe"
+> "GODOT_PATH": "D:/Godot/Godot_v3.6.2-stable_win64.exe"
 > ```
 >
 > Setting the variable from a wrapper `.bat` does not propagate to the MCP server — the path must live in the client's `env` block above.
 
 ### Verify
 
-Ask your AI assistant to call `get_project_info`. If it returns a Godot version string (e.g., `4.4.stable`), you're connected and working.
+Ask your AI assistant to call `get_project_info`. If it returns a Godot version string (e.g., `3.6.2.stable`), you're connected and working.
 
 ## Docs
 

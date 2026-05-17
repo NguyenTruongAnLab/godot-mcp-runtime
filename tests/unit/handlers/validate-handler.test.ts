@@ -273,16 +273,10 @@ describe('handleValidate batch mode', () => {
     expect(parsed.results[2].target).toBe('ok.tscn');
   });
 
-  it('reports valid:false for parse-broken targets from real Godot 4.5 stderr', async () => {
-    // Regression: real Godot 4.5 stderr formats the `at:` line as
-    //   "   at: GDScript::reload (res://path/to/file.gd:LINE)"
-    // — the res:// path appears inside parentheses after a method name, not bare
-    // after `at:`. The tolerant `at:` regex must capture that path. As a
-    // belt-and-suspenders fallback, the secondary "Failed to load script: \"res://...\""
-    // message lands several lines below after a GDScript backtrace, so the
-    // lookahead window must clear it (10 lines covers any realistic trace).
-    // Without either fix, batch error attribution returns an empty Map and
-    // valid falls back to GDScript's unreliable `resource != null` flag.
+  it('reports valid:false for parse-broken targets from real Godot 3.6 stderr', async () => {
+    // Regression: Godot 3.x can emit parse errors as ERROR lines followed by a
+    // plain "at: res://path:LINE" entry. The parser must capture both the
+    // message and the file+line so batch attribution works.
     const fake = createFakeRunner({
       stdout: JSON.stringify({
         results: [
@@ -291,13 +285,9 @@ describe('handleValidate batch mode', () => {
         ],
       }),
       stderr: [
-        'SCRIPT ERROR: Parse Error: Expected parameter name.',
-        '   at: GDScript::reload (res://_e2e_test/broken.gd:3)',
-        '   GDScript backtrace (most recent call first):',
-        '       [0] _validate_single (res://.mcp/godot_operations.gd:860)',
-        '       [1] validate_batch (res://.mcp/godot_operations.gd:876)',
-        '       [2] _init (res://.mcp/godot_operations.gd:87)',
-        'ERROR: Failed to load script "res://_e2e_test/broken.gd" with error "Parse error".',
+        'ERROR: Parse Error: Expected parameter name.',
+        '   at: res://_e2e_test/broken.gd:3',
+        'ERROR: Failed to load script "res://_e2e_test/broken.gd".',
         '   at: load (core/io/resource_loader.cpp:283)',
       ].join('\n'),
     });

@@ -207,10 +207,10 @@ describe('handleGetSceneDependencies', () => {
   it('parses ext_resource entries with type, path, and uid attributes', async () => {
     const dir = tmp.makeProject('deps-');
     const tscn = [
-      '[gd_scene load_steps=3 format=3]',
+      '[gd_scene load_steps=3 format=2]',
       '',
       '[ext_resource type="Script" path="res://scripts/player.gd" id="1_abc"]',
-      '[ext_resource type="Texture2D" uid="uid://abc123" path="res://art/hero.png" id="2_def"]',
+      '[ext_resource type="Texture" path="res://art/hero.png" id="2_def"]',
       '',
       '[node name="Root" type="Node2D"]',
       '',
@@ -227,7 +227,7 @@ describe('handleGetSceneDependencies', () => {
     }>(result);
     expect(parsed.dependencies).toEqual([
       { path: 'scripts/player.gd', type: 'Script' },
-      { path: 'art/hero.png', type: 'Texture2D', uid: 'uid://abc123' },
+      { path: 'art/hero.png', type: 'Texture' },
     ]);
   });
 });
@@ -256,7 +256,7 @@ describe('handleGetProjectSettings', () => {
     const result = await handleGetProjectSettings({ projectPath: fixtureProjectPath });
     const parsed = parseText<{ settings: Record<string, Record<string, unknown>> }>(result);
     expect(parsed.settings).toHaveProperty('application');
-    expect(parsed.settings).toHaveProperty('rendering');
+    expect(parsed.settings).not.toHaveProperty('rendering');
     expect(parsed.settings.application['config/name']).toBe('godot-mcp-runtime test fixture');
   });
 
@@ -288,17 +288,17 @@ describe('handleGetProjectSettings', () => {
 
 describe('handleGetProjectInfo', () => {
   it('returns version-only payload when no projectPath is provided', async () => {
-    const fake = createFakeRunner({ godotVersion: '4.4.1.stable.official' });
+    const fake = createFakeRunner({ godotVersion: '3.6.2.stable.official' });
     const result = await handleGetProjectInfo(fake.asRunner, {});
     expect(hasError(result)).toBe(false);
     const parsed = parseText<{ godotVersion: string; name?: string; structure?: unknown }>(result);
-    expect(parsed.godotVersion).toBe('4.4.1.stable.official');
+    expect(parsed.godotVersion).toBe('3.6.2.stable.official');
     expect(parsed.name).toBeUndefined();
     expect(parsed.structure).toBeUndefined();
   });
 
   it('reads config/name from project.godot and reports it as the project name', async () => {
-    const fake = createFakeRunner({ godotVersion: '4.4.stable' });
+    const fake = createFakeRunner({ godotVersion: '3.6.2.stable' });
     const result = await handleGetProjectInfo(fake.asRunner, {
       projectPath: fixtureProjectPath,
     });
@@ -311,7 +311,7 @@ describe('handleGetProjectInfo', () => {
     }>(result);
     expect(parsed.name).toBe('godot-mcp-runtime test fixture');
     expect(parsed.path).toBe(fixtureProjectPath);
-    expect(parsed.godotVersion).toBe('4.4.stable');
+    expect(parsed.godotVersion).toBe('3.6.2.stable');
     // The fixture has main.tscn (scene), placeholder.gd (script), placeholder.png (asset).
     expect(parsed.structure.scenes).toBeGreaterThanOrEqual(1);
     expect(parsed.structure.scripts).toBeGreaterThanOrEqual(1);
@@ -319,8 +319,8 @@ describe('handleGetProjectInfo', () => {
   });
 
   it('falls back to basename(projectPath) when project.godot has no config/name', async () => {
-    const dir = tmp.makeProject('no-name-', 'config_version=5\n');
-    const fake = createFakeRunner({ godotVersion: '4.3.stable' });
+    const dir = tmp.makeProject('no-name-', 'config_version=4\n');
+    const fake = createFakeRunner({ godotVersion: '3.6.2.stable' });
     const result = await handleGetProjectInfo(fake.asRunner, { projectPath: dir });
     expect(hasError(result)).toBe(false);
     const parsed = parseText<{ name: string }>(result);
@@ -328,7 +328,7 @@ describe('handleGetProjectInfo', () => {
   });
 
   it('rejects an invalid projectPath', async () => {
-    const fake = createFakeRunner({ godotVersion: '4.3.stable' });
+    const fake = createFakeRunner({ godotVersion: '3.6.2.stable' });
     expectErrorMatching(
       await handleGetProjectInfo(fake.asRunner, { projectPath: '../escape' }),
       /invalid project path/i,
@@ -381,12 +381,12 @@ describe('handleListProjects', () => {
     const parent = makeTmpEmptyDir();
     const dotProject = join(parent, '.dot-project');
     mkdirSync(dotProject, { recursive: true });
-    writeFileSync(join(dotProject, 'project.godot'), 'config_version=5\n', 'utf8');
+    writeFileSync(join(dotProject, 'project.godot'), 'config_version=4\n', 'utf8');
 
     // Sibling .git dir is on the blacklist and must NOT be reported.
     const gitDir = join(parent, '.git');
     mkdirSync(gitDir, { recursive: true });
-    writeFileSync(join(gitDir, 'project.godot'), 'config_version=5\n', 'utf8');
+    writeFileSync(join(gitDir, 'project.godot'), 'config_version=4\n', 'utf8');
 
     const result = await handleListProjects({ directory: parent });
     expect(hasError(result)).toBe(false);

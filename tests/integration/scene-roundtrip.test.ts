@@ -65,7 +65,7 @@ describe('add_node round-trip', () => {
     async () => {
       await runner.executeOperation(
         'add_node',
-        { scenePath: 'main.tscn', nodeType: 'Sprite2D', nodeName: 'TestSprite' },
+        { scenePath: 'main.tscn', nodeType: 'Sprite', nodeName: 'TestSprite' },
         tmpProject,
         30000,
       );
@@ -103,7 +103,7 @@ describe('add_node round-trip', () => {
   itGodot(
     'add_node with non-existent parentNodePath does not produce a success message or mutate the scene',
     async () => {
-      // Regression: SceneTree.quit(n) in Godot 4 only schedules a quit for
+      // Regression: SceneTree.quit(n) schedules a quit for
       // end-of-frame, so control was falling through past the failing
       // _apply_add_node call into save_scene_to_path + the success print().
       // Stdout then read as success and the parent-not-found stderr was
@@ -120,7 +120,7 @@ describe('add_node round-trip', () => {
           'add_node',
           {
             scenePath: 'main.tscn',
-            nodeType: 'Sprite2D',
+            nodeType: 'Sprite',
             nodeName: 'Orphan',
             parentNodePath: 'root/DoesNotExist',
           },
@@ -248,11 +248,11 @@ describe('delete_nodes round-trip', () => {
   itGodot(
     'get_scene_tree no longer lists the node after delete_nodes',
     async () => {
-      // Fixture invariant: tests/fixtures/godot-project/main.tscn ships with a Sprite2D
+      // Fixture invariant: tests/fixtures/godot-project/main.tscn ships with a Sprite
       // child of the root Node2D — fixture.test.ts guards this shape.
       await runner.executeOperation(
         'delete_nodes',
-        { scenePath: 'main.tscn', nodePaths: ['root/Sprite2D'] },
+        { scenePath: 'main.tscn', nodePaths: ['root/Sprite'] },
         tmpProject,
         30000,
       );
@@ -264,7 +264,7 @@ describe('delete_nodes round-trip', () => {
         30000,
       );
       const treeAfter = JSON.parse(extractJson(after));
-      expect(collectNames(treeAfter)).not.toContain('Sprite2D');
+      expect(collectNames(treeAfter)).not.toContain('Sprite');
     },
     60000,
   );
@@ -274,14 +274,14 @@ describe('delete_nodes round-trip', () => {
     async () => {
       await runner.executeOperation(
         'delete_nodes',
-        { scenePath: 'main.tscn', nodePaths: ['root/Sprite2D'] },
+        { scenePath: 'main.tscn', nodePaths: ['root/Sprite'] },
         tmpProject,
         30000,
       );
 
       const tscnContent = readFileSync(join(tmpProject, 'main.tscn'), 'utf8');
-      // The Sprite2D node entry should no longer appear in the file
-      expect(tscnContent).not.toMatch(/\[node name="Sprite2D"/);
+      // The Sprite node entry should no longer appear in the file
+      expect(tscnContent).not.toMatch(/\[node name="Sprite"/);
     },
     40000,
   );
@@ -307,7 +307,7 @@ describe('add_node coerces dict properties (Bug #1)', () => {
         'add_node',
         {
           scenePath: 'main.tscn',
-          nodeType: 'Sprite2D',
+          nodeType: 'Sprite',
           nodeName: 'CoercedSprite',
           properties: {
             position: { x: 100, y: 200 },
@@ -343,7 +343,7 @@ describe('connect_signal persists with CONNECT_PERSIST (Bug #2)', () => {
   itGodot(
     'connect_signal writes a [connection] entry that survives re-pack',
     async () => {
-      // Fixture has root Node2D (named "root") with a Label and Sprite2D child.
+      // Fixture has root Node2D (named "root") with a Label and Sprite child.
       // The Label has the queue_free method; root has tree_exiting signal.
       await runner.executeOperation(
         'connect_signal',
@@ -398,7 +398,7 @@ describe('load_sprite rejects unimported textures with a clear error (Bug #4)', 
           'load_sprite',
           {
             scenePath: 'main.tscn',
-            nodePath: 'root/Sprite2D',
+            nodePath: 'root/Sprite',
             texturePath: 'unimported.png',
           },
           tmpProject,
@@ -412,7 +412,7 @@ describe('load_sprite rejects unimported textures with a clear error (Bug #4)', 
       }
 
       // Either a thrown error or a stderr message — but NOT silent success.
-      // Tolerate either the new explicit "resource_path" / "Texture2D" guard
+      // Tolerate either the new explicit "resource_path" / "Texture" guard
       // message, or Godot's lower-level "No loader found" / "Failed to load
       // texture" error.
       expect(threw || errorMessage.length > 0).toBe(true);

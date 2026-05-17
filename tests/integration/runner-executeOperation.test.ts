@@ -49,7 +49,7 @@ describe('GodotRunner.executeOperation', () => {
       async () => {
         // The validate handler uses the `source` field: it writes a tmp file,
         // runs validate_resource, then merges stderr parse errors into the result.
-        // Godot 4.x reports parse errors to stderr ("SCRIPT ERROR: Parse Error: ...").
+        // Godot 3.x reports parse errors to stderr ("Parse Error: ...").
         // Depending on whether load() returns non-null, `valid` may be true in some
         // Godot versions — but the errors must always be surfaced in the errors array.
         const result = await handleValidate(runner, {

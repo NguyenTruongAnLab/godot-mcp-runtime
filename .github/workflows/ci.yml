@@ -44,7 +44,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        godot-version: ['4.5.1', '4.6.2']
+        godot-version: ['3.6.2']
     steps:
       - uses: actions/checkout@v4
 
@@ -61,7 +61,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/godot-bin
-          key: godot-${{ matrix.godot-version }}-linux-x86_64
+          key: godot-${{ matrix.godot-version }}-x11-64
 
       - name: Install Godot ${{ matrix.godot-version }}
         if: steps.cache-godot.outputs.cache-hit != 'true'
@@ -69,9 +69,9 @@ jobs:
           set -euo pipefail
           mkdir -p ~/godot-bin
           VERSION="${{ matrix.godot-version }}"
-          ZIP_NAME="Godot_v${VERSION}-stable_linux.x86_64.zip"
-          BIN_NAME="Godot_v${VERSION}-stable_linux.x86_64"
-          URL="https://github.com/godotengine/godot-builds/releases/download/${VERSION}-stable/${ZIP_NAME}"
+          ZIP_NAME="Godot_v${VERSION}-stable_x11.64.zip"
+          BIN_NAME="Godot_v${VERSION}-stable_x11.64"
+          URL="https://downloads.tuxfamily.org/godotengine/${VERSION}/${ZIP_NAME}"
           curl -fL -o /tmp/godot.zip "$URL"
           unzip -q /tmp/godot.zip -d ~/godot-bin
           chmod +x ~/godot-bin/"$BIN_NAME"
@@ -81,5 +81,5 @@ jobs:
 
       - name: Run tests against Godot ${{ matrix.godot-version }}
         env:
-          GODOT_PATH: /home/runner/godot-bin/Godot_v${{ matrix.godot-version }}-stable_linux.x86_64
+          GODOT_PATH: /home/runner/godot-bin/Godot_v${{ matrix.godot-version }}-stable_x11.64
         run: xvfb-run -a npm test

@@ -21,7 +21,7 @@ export interface TmpDirHandle {
   makeProject(prefix?: string, content?: string): string;
 }
 
-const DEFAULT_PROJECT_GODOT = 'config_version=5\n';
+const DEFAULT_PROJECT_GODOT = 'config_version=4\n';
 
 /**
  * Register an `afterEach` cleanup hook for tmp dirs created during the

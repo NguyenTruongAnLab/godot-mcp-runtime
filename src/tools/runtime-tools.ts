@@ -508,7 +508,7 @@ export async function handleRunProject(runner: GodotRunner, args: OperationParam
     await runner.detectGodotPath();
     if (!runner.getGodotPath()) {
       return createErrorResponse('Could not find a valid Godot executable path', [
-        'Set GODOT_PATH in your MCP client config to your Godot 4.x executable',
+        'Set GODOT_PATH in your MCP client config to your Godot 3.x executable',
         'Ensure the path points at the Godot binary, not its installation folder',
         'On Windows, escape backslashes in JSON (e.g. "D:\\\\Godot\\\\Godot.exe")',
       ]);

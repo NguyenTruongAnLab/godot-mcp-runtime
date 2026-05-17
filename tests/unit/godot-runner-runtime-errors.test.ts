@@ -5,7 +5,7 @@
  * Both feed the runtime-error warning channel for take_screenshot,
  * simulate_input, get_ui_elements, and the false-positive escalation in
  * run_script. If SCRIPT_ERROR_PATTERNS drifts (case mismatch with actual
- * Godot 4.x stderr lines) all four handlers silently lose their warning
+ * Godot 3.x stderr lines) all four handlers silently lose their warning
  * channel — `runtimeErrors.length > 0` is then always false.
  */
 

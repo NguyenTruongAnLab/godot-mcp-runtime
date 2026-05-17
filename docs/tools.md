@@ -36,7 +36,7 @@ All mutation operations save automatically. Use `save_scene` only for save-as (`
 | ------------------------ | -------------------------------------------------------------------- |
 | `create_scene`           | Create a new scene file                                              |
 | `add_node`               | Add a node to an existing scene (supports promoted spatial params)   |
-| `load_sprite`            | Set a texture on a Sprite2D, Sprite3D, or TextureRect                |
+| `load_sprite`            | Set a texture on a Sprite, Sprite3D, or TextureRect                  |
 | `save_scene`             | Re-pack and save the scene, or save-as with `newPath`                |
 | `export_mesh_library`    | Export scenes as a MeshLibrary for GridMap                           |
 | `batch_scene_operations` | Run multiple add_node/load_sprite/save ops in a single Godot process |

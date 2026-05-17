@@ -648,7 +648,7 @@ export class GodotRunner {
       }
       logError(
         `Configured Godot path "${this.godotPath}" is not a working Godot executable. ` +
-          `Pass a valid Godot 4.x binary via the godotPath config option.`,
+          `Pass a valid Godot 3.x binary via the godotPath config option.`,
       );
       this.godotPath = null;
       return;
@@ -664,7 +664,7 @@ export class GodotRunner {
       }
       logError(
         `GODOT_PATH is set to "${normalizedPath}" but no working Godot executable was found there. ` +
-          `Update GODOT_PATH to your Godot 4.x binary or unset it to auto-detect.`,
+        `Update GODOT_PATH to your Godot 3.x binary or unset it to auto-detect.`,
       );
       return;
     }
@@ -677,7 +677,7 @@ export class GodotRunner {
     if (osPlatform === 'darwin') {
       possiblePaths.push(
         '/Applications/Godot.app/Contents/MacOS/Godot',
-        '/Applications/Godot_4.app/Contents/MacOS/Godot',
+        '/Applications/Godot_3.app/Contents/MacOS/Godot',
         `${process.env.HOME}/Applications/Godot.app/Contents/MacOS/Godot`,
       );
     } else if (osPlatform === 'win32') {
@@ -708,7 +708,7 @@ export class GodotRunner {
 
     logError(
       `Could not find Godot in common locations for ${osPlatform}. ` +
-        `Set GODOT_PATH to your Godot 4.x executable.`,
+        `Set GODOT_PATH to your Godot 3.x executable.`,
     );
   }
 
@@ -807,7 +807,7 @@ export class GodotRunner {
   launchEditor(projectPath: string): ChildProcess {
     if (!this.godotPath) {
       throw new Error(
-        'No Godot executable resolved. Set GODOT_PATH to a Godot 4.x binary, or pass godotPath via config.',
+        'No Godot executable resolved. Set GODOT_PATH to a Godot 3.x binary, or pass godotPath via config.',
       );
     }
     return spawn(this.godotPath, ['-e', '--path', projectPath], { stdio: 'pipe' });
@@ -821,7 +821,7 @@ export class GodotRunner {
   ): Promise<GodotProcess> {
     if (!this.godotPath) {
       throw new Error(
-        'No Godot executable resolved. Set GODOT_PATH to a Godot 4.x binary, or pass godotPath via config.',
+        'No Godot executable resolved. Set GODOT_PATH to a Godot 3.x binary, or pass godotPath via config.',
       );
     }
 

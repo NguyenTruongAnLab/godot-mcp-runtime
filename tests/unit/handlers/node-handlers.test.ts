@@ -98,11 +98,11 @@ describe('handleDeleteNodes', () => {
 
   it('returns parsed result on successful runner output', async () => {
     const fake = createFakeRunner({
-      stdout: '{"results":[{"nodePath":"root/Sprite2D","success":true}]}',
+      stdout: '{"results":[{"nodePath":"root/Sprite","success":true}]}',
     });
     const result = await handleDeleteNodes(fake.asRunner, {
       ...validBase,
-      nodePaths: ['root/Sprite2D'],
+      nodePaths: ['root/Sprite'],
     });
     expect(hasError(result)).toBe(false);
     const text = (result as { content: Array<{ text: string }> }).content[0].text;
@@ -116,7 +116,7 @@ describe('handleDeleteNodes', () => {
 // ---------------------------------------------------------------------------
 
 describe('handleSetNodeProperties', () => {
-  const validUpdates = [{ nodePath: 'root/Sprite2D', property: 'visible', value: true }];
+  const validUpdates = [{ nodePath: 'root/Sprite', property: 'visible', value: true }];
 
   it('rejects missing projectPath', async () => {
     const fake = createFakeRunner();
@@ -173,7 +173,7 @@ describe('handleSetNodeProperties', () => {
 
   it('handles single-element updates array', async () => {
     const fake = createFakeRunner({
-      stdout: '{"results":[{"nodePath":"root/Sprite2D","property":"visible","success":true}]}',
+      stdout: '{"results":[{"nodePath":"root/Sprite","property":"visible","success":true}]}',
     });
     const result = await handleSetNodeProperties(fake.asRunner, {
       ...validBase,
@@ -367,11 +367,11 @@ describe('handleAttachScript', () => {
 
   it('returns parsed result on successful runner output', async () => {
     const fake = createFakeRunner({
-      stdout: "Script 'res://placeholder.gd' attached successfully to node 'root/Sprite2D'",
+      stdout: "Script 'res://placeholder.gd' attached successfully to node 'root/Sprite'",
     });
     const result = await handleAttachScript(fake.asRunner, {
       ...validBase,
-      nodePath: 'root/Sprite2D',
+      nodePath: 'root/Sprite',
       scriptPath: 'placeholder.gd',
     });
     expect(hasError(result)).toBe(false);
@@ -513,11 +513,11 @@ describe('handleDuplicateNode', () => {
 
   it('returns parsed result on successful runner output', async () => {
     const fake = createFakeRunner({
-      stdout: "Node duplicated successfully as 'Sprite2D2'",
+      stdout: "Node duplicated successfully as 'Sprite2'",
     });
     const result = await handleDuplicateNode(fake.asRunner, {
       ...validBase,
-      nodePath: 'root/Sprite2D',
+      nodePath: 'root/Sprite',
     });
     expect(hasError(result)).toBe(false);
     const text = (result as { content: Array<{ text: string }> }).content[0].text;

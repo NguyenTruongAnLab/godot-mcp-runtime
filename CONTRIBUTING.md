@@ -9,7 +9,7 @@ npm install
 npm run build
 ```
 
-Set `GODOT_PATH` to your Godot 4.x executable for runtime tests and manual exercises.
+Set `GODOT_PATH` to your Godot 3.x executable for runtime tests and manual exercises.
 
 ### Local MCP client wiring
 

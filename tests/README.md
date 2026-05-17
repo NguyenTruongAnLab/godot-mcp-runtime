@@ -65,7 +65,7 @@ If the fixture exercises tools that require Godot, add a row to the coverage map
 
 ## Gotchas worth knowing before debugging a test
 
-- **`root/...` is a virtual path prefix, not the fixture's actual root node name.** The committed fixture's root node is `[node name="Main"]`, but tests address it as `root/Label`, `root/Sprite2D`, etc. The bridge in `src/scripts/godot_operations.gd::find_node_by_path` translates `root` → the actual scene root regardless of its name. Don't go hunting in the `.tscn` for a node literally called `root`.
+- **`root/...` is a virtual path prefix, not the fixture's actual root node name.** The committed fixture's root node is `[node name="Main"]`, but tests address it as `root/Label`, `root/Sprite`, etc. The bridge in `src/scripts/godot_operations.gd::find_node_by_path` translates `root` → the actual scene root regardless of its name. Don't go hunting in the `.tscn` for a node literally called `root`.
 
 ## Testing rubric
 

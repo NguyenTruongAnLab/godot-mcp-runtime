@@ -15,7 +15,7 @@ export const sceneToolDefinitions: ToolDefinition[] = [
   {
     name: 'create_scene',
     description:
-      'Create a new Godot scene file with a single root node. Writes a fresh .tscn at scenePath. Use when starting a new scene from scratch; for adding nodes to an existing scene, use add_node. rootNodeType defaults to Node2D — pass "Node3D" for 3D scenes or "Control" for UI. Saves automatically. Overwrites silently if the file already exists. Returns: success and the scenePath that was written.',
+      'Create a new Godot scene file with a single root node. Writes a fresh .tscn at scenePath. Use when starting a new scene from scratch; for adding nodes to an existing scene, use add_node. rootNodeType defaults to Node2D — pass "Spatial" for 3D scenes or "Control" for UI. Saves automatically. Overwrites silently if the file already exists. Returns: success and the scenePath that was written.',
     annotations: { idempotentHint: true },
     inputSchema: {
       type: 'object',
@@ -40,7 +40,7 @@ export const sceneToolDefinitions: ToolDefinition[] = [
   {
     name: 'add_node',
     description:
-      'Add a node to a Godot scene. Saves automatically. Common spatial properties (position, position3d, rotation, scale, visible, modulate) can be set as top-level params; for any other property, pass it under properties. Vector2/Vector3/Color values auto-convert from {x,y}/{x,y,z}/{r,g,b,a}. parentNodePath defaults to the scene root. Returns a plain-text confirmation message naming the new node and type. Errors if nodeType is not a registered Godot class or parentNodePath does not exist.',
+      'Add a node to a Godot scene. Saves automatically. Common spatial properties (position, translation, rotation, scale, visible, modulate) can be set as top-level params; for any other property, pass it under properties. Vector2/Vector3/Color values auto-convert from {x,y}/{x,y,z}/{r,g,b,a}. parentNodePath defaults to the scene root. Returns a plain-text confirmation message naming the new node and type. Errors if nodeType is not a registered Godot class or parentNodePath does not exist.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -49,7 +49,7 @@ export const sceneToolDefinitions: ToolDefinition[] = [
         nodeType: {
           type: 'string',
           description:
-            'Godot node class to instantiate (e.g. "Sprite2D", "CollisionShape2D", "Label")',
+            'Godot node class to instantiate (e.g. "Sprite", "CollisionShape2D", "Label")',
         },
         nodeName: {
           type: 'string',
@@ -65,9 +65,9 @@ export const sceneToolDefinitions: ToolDefinition[] = [
           description: 'Vector2 position (e.g. {"x": 100, "y": 200})',
           properties: { x: { type: 'number' }, y: { type: 'number' } },
         },
-        position3d: {
+        translation: {
           type: 'object',
-          description: 'Vector3 position for 3D nodes (e.g. {"x": 0, "y": 1, "z": 0})',
+          description: 'Vector3 translation for 3D nodes (e.g. {"x": 0, "y": 1, "z": 0})',
           properties: { x: { type: 'number' }, y: { type: 'number' }, z: { type: 'number' } },
         },
         rotation: { type: 'number', description: 'Rotation in radians' },
@@ -99,7 +99,7 @@ export const sceneToolDefinitions: ToolDefinition[] = [
   {
     name: 'load_sprite',
     description:
-      'Set the texture on an existing Sprite2D, Sprite3D, or TextureRect node. Use this when the node already exists; for new nodes, pass texture via add_node properties. Saves automatically. texturePath must be a real file under projectPath. Returns a plain-text confirmation message naming the loaded texture. Errors if the node is not one of those three classes, or the texture file does not exist.',
+      'Set the texture on an existing Sprite, Sprite3D, or TextureRect node. Use this when the node already exists; for new nodes, pass texture via add_node properties. Saves automatically. texturePath must be a real file under projectPath. Returns a plain-text confirmation message naming the loaded texture. Errors if the node is not one of those three classes, or the texture file does not exist.',
     annotations: { idempotentHint: true },
     inputSchema: {
       type: 'object',
@@ -108,7 +108,7 @@ export const sceneToolDefinitions: ToolDefinition[] = [
         scenePath: { type: 'string', description: 'Scene file path relative to the project' },
         nodePath: {
           type: 'string',
-          description: 'Path to the target node from scene root (e.g. "root/Player/Sprite2D")',
+          description: 'Path to the target node from scene root (e.g. "root/Player/Sprite")',
         },
         texturePath: {
           type: 'string',
@@ -141,7 +141,7 @@ export const sceneToolDefinitions: ToolDefinition[] = [
   {
     name: 'export_mesh_library',
     description:
-      'Export a scene of MeshInstance3D nodes as a MeshLibrary .res file for use in GridMap. Use this when authoring tile palettes for grid-based 3D levels; ignore for 2D or general scene work. The source scene must contain MeshInstance3D children. Pass meshItemNames to export a subset, or omit to export all. Saves the .res to outputPath, overwriting silently. Returns a plain-text confirmation with the exported item count. Errors if the scene contains no valid meshes.',
+      'Export a scene of MeshInstance nodes as a MeshLibrary .res file for use in GridMap. Use this when authoring tile palettes for grid-based 3D levels; ignore for 2D or general scene work. The source scene must contain MeshInstance children. Pass meshItemNames to export a subset, or omit to export all. Saves the .res to outputPath, overwriting silently. Returns a plain-text confirmation with the exported item count. Errors if the scene contains no valid meshes.',
     annotations: { destructiveHint: true },
     inputSchema: {
       type: 'object',
@@ -260,7 +260,7 @@ export async function handleAddNode(runner: GodotRunner, args: OperationParams) 
   // Merge promoted top-level params into properties dict
   const promotedKeys = [
     'position',
-    'position3d',
+    'translation',
     'rotation',
     'scale',
     'visible',
@@ -312,7 +312,7 @@ export async function handleLoadSprite(runner: GodotRunner, args: OperationParam
     texturePath: args.texturePath,
   };
   return executeSceneOp(runner, 'load_sprite', params, v.projectPath, 'Failed to load sprite', [
-    'Check if the node is a Sprite2D, Sprite3D, or TextureRect',
+    'Check if the node is a Sprite, Sprite3D, or TextureRect',
   ]);
 }
 

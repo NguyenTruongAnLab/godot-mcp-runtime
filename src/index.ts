@@ -32,7 +32,7 @@ export const allToolDefinitions = [
   ...validateToolDefinitions,
 ];
 
-export const serverInstructions = `Godot MCP Server — AI-driven Godot 4.x project manipulation.
+export const serverInstructions = `Godot MCP Server — AI-driven Godot 3.x project manipulation.
 
 Tool categories:
 - Project management: launch_editor, run_project, attach_project, detach_project, stop_project, get_debug_output, list_projects, get_project_info
@@ -48,7 +48,7 @@ Key behaviors:
 - run_project verifies bridge readiness before returning success. If it reports degraded status, retry runtime tools after a moment or check get_debug_output.
 - attach_project is the fallback path for a manually launched Godot process. It injects the bridge and marks the project active, but it does not spawn Godot or capture stdout/stderr.
 - click_element in simulate_input resolves by node path or node name (BFS search), NOT by visible text. Use get_ui_elements to discover valid element identifiers.
-- run_script expects GDScript with "extends RefCounted" and "func execute(scene_tree: SceneTree) -> Variant".
+- run_script expects GDScript with "extends Reference" and "func execute(scene_tree: SceneTree) -> Variant".
 - run_project spawns Godot without -d so runtime errors do not pause execution; the \`breakpoint\` keyword in user code is a no-op (no debugger is attached). SCRIPT ERROR output and GDScript backtraces still appear in stderr.`;
 
 class GodotMcpServer {

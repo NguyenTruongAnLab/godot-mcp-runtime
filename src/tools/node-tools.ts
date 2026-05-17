@@ -29,7 +29,7 @@ export const nodeToolDefinitions: ToolDefinition[] = [
         nodePaths: {
           type: 'array',
           items: { type: 'string' },
-          description: 'Node paths from scene root to delete (e.g. ["root/Player/Sprite2D"])',
+          description: 'Node paths from scene root to delete (e.g. ["root/Player/Sprite"])',
         },
       },
       required: ['projectPath', 'scenePath', 'nodePaths'],

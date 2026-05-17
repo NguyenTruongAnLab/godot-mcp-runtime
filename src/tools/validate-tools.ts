@@ -105,7 +105,7 @@ function parseGodotErrorEntries(stderr: string): ParsedErrorEntry[] {
         //   "   at: res://foo.gd:3"
         // and
         //   "   at: GDScript::reload (res://foo.gd:3)"
-        // Real Godot 4.5 stderr uses the parenthesized form.
+        // Some Godot 3.x builds use the parenthesized form.
         const resAtMatch = lines[i + 1].match(/\s*at:\s*(?:[^()\n]*\()?(res:\/\/[^):"\s]+):(\d+)/);
         if (resAtMatch) {
           filePath = resAtMatch[1];

@@ -30,7 +30,7 @@ function makeTmpProject(): string {
 /** Create a minimal project with one autoload registered. */
 function makeTmpProjectWithAutoload(name: string, path: string): string {
   const dir = makeTmpProject();
-  const content = `config_version=5\n\n[autoload]\n${name}="*res://${path}"\n`;
+  const content = `config_version=4\n\n[autoload]\n${name}="*res://${path}"\n`;
   writeFileSync(join(dir, 'project.godot'), content, 'utf8');
   return dir;
 }

@@ -25,7 +25,7 @@ function setupProject(opts: { projectGodot?: string; gitignore?: string } = {}):
   manager: BridgeManager;
   bridgeSourcePath: string;
 } {
-  const projectPath = tmp.makeProject('mcp-bridge-', opts.projectGodot ?? 'config_version=5\n');
+  const projectPath = tmp.makeProject('mcp-bridge-', opts.projectGodot ?? 'config_version=4\n');
   if (opts.gitignore !== undefined) {
     writeFileSync(join(projectPath, '.gitignore'), opts.gitignore, 'utf8');
   }
@@ -133,7 +133,7 @@ describe('BridgeManager.inject', () => {
   });
 
   it('throws if the template lacks the const PORT marker', () => {
-    const projectPath = tmp.makeProject('mcp-bridge-bad-', 'config_version=5\n');
+    const projectPath = tmp.makeProject('mcp-bridge-bad-', 'config_version=4\n');
     const sourceDir = tmp.make('mcp-bridge-bad-src-');
     const bridgeSourcePath = join(sourceDir, 'mcp_bridge.gd');
     writeFileSync(bridgeSourcePath, '# no marker\nextends Node\n', 'utf8');
@@ -143,7 +143,7 @@ describe('BridgeManager.inject', () => {
 
   it('inserts McpBridge into an existing empty [autoload] section', () => {
     const { projectPath, manager } = setupProject({
-      projectGodot: 'config_version=5\n\n[autoload]\n',
+      projectGodot: 'config_version=4\n\n[autoload]\n',
     });
     manager.inject(projectPath, TEST_PORT);
 
@@ -181,7 +181,7 @@ describe('BridgeManager.cleanup', () => {
 
   it('preserves other autoload entries when removing the bridge', () => {
     const { projectPath, manager } = setupProject({
-      projectGodot: 'config_version=5\n\n[autoload]\nOtherSingleton="*res://other.gd"\n',
+      projectGodot: 'config_version=4\n\n[autoload]\nOtherSingleton="*res://other.gd"\n',
     });
     manager.inject(projectPath, TEST_PORT);
     manager.cleanup(projectPath);
@@ -209,7 +209,7 @@ describe('BridgeManager.repairOrphaned', () => {
   it('removes a stale McpBridge autoload entry when the script file is missing', () => {
     const projectPath = tmp.makeProject(
       'mcp-orphan-',
-      'config_version=5\n\n[autoload]\nMcpBridge="*res://mcp_bridge.gd"\n',
+      'config_version=4\n\n[autoload]\nMcpBridge="*res://mcp_bridge.gd"\n',
     );
     const sourceDir = tmp.make('mcp-bridge-src-');
     const bridgeSourcePath = join(sourceDir, 'mcp_bridge.gd');
