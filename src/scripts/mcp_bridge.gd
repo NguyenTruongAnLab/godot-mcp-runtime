@@ -80,19 +80,22 @@ func _poll_peer(peer: PeerState) -> void:
 
 	while true:
 		if peer.expected_len < 0:
-		if peer.buffer.size() < FRAME_HEADER_BYTES:
-			return
-		# Read u32 BE header.
-		var header = peer.buffer.subarray(0, FRAME_HEADER_BYTES)
-		var b0 := int(header[0])
-		var b1 := int(header[1])
-		var b2 := int(header[2])
-		var b3 := int(header[3])
-		peer.expected_len = (b0 << 24) | (b1 << 16) | (b2 << 8) | b3
-		peer.buffer = peer.buffer.subarray(FRAME_HEADER_BYTES, peer.buffer.size())
-		if peer.expected_len > MAX_FRAME_BYTES:
-			push_error("McpBridge: Frame header exceeds limit (%d), closing peer" % peer.expected_len)
-			peer.stream.disconnect_from_host()
+			if peer.buffer.size() < FRAME_HEADER_BYTES:
+				return
+			# Read u32 BE header.
+			var header = peer.buffer.subarray(0, FRAME_HEADER_BYTES - 1)
+			var b0 := int(header[0])
+			var b1 := int(header[1])
+			var b2 := int(header[2])
+			var b3 := int(header[3])
+			peer.expected_len = (b0 << 24) | (b1 << 16) | (b2 << 8) | b3
+			if FRAME_HEADER_BYTES >= peer.buffer.size():
+				peer.buffer = PoolByteArray()
+			else:
+				peer.buffer = peer.buffer.subarray(FRAME_HEADER_BYTES, peer.buffer.size() - 1)
+			if peer.expected_len > MAX_FRAME_BYTES:
+				push_error("McpBridge: Frame header exceeds limit (%d), closing peer" % peer.expected_len)
+				peer.stream.disconnect_from_host()
 				peer.stream = null
 				return
 
@@ -101,8 +104,13 @@ func _poll_peer(peer: PeerState) -> void:
 		if peer.buffer.size() < peer.expected_len:
 			return
 
-		var frame_bytes = peer.buffer.subarray(0, peer.expected_len)
-		peer.buffer = peer.buffer.subarray(peer.expected_len, peer.buffer.size())
+		var frame_bytes = PoolByteArray()
+		if peer.expected_len > 0:
+			frame_bytes = peer.buffer.subarray(0, peer.expected_len - 1)
+		if peer.expected_len >= peer.buffer.size():
+			peer.buffer = PoolByteArray()
+		else:
+			peer.buffer = peer.buffer.subarray(peer.expected_len, peer.buffer.size() - 1)
 		peer.expected_len = -1
 
 		var data := frame_bytes.get_string_from_utf8().strip_edges()
@@ -189,7 +197,7 @@ func _handle_screenshot(peer: PeerState, payload: Dictionary = {}) -> void:
 	if dir_err != OK:
 		_send_response(peer, {"error": "Failed to create screenshot directory (error %d)" % dir_err})
 		return
-	var file_path := screenshot_dir.path_join("screenshot_%s.png" % timestamp)
+	var file_path := screenshot_dir.plus_file("screenshot_%s.png" % timestamp)
 
 	var save_err := image.save_png(file_path)
 	if save_err != OK:
