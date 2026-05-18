@@ -742,7 +742,7 @@ describe('handleGetUiElements', () => {
 // ---------------------------------------------------------------------------
 
 describe('handleRunScript', () => {
-  const VALID_SCRIPT = 'extends RefCounted\nfunc execute(scene_tree):\n\treturn null\n';
+  const VALID_SCRIPT = 'extends Reference\nfunc execute(scene_tree):\n\treturn null\n';
 
   it('rejects a non-string or empty script', async () => {
     const fake = createRuntimeFake();
@@ -765,7 +765,7 @@ describe('handleRunScript', () => {
       process: makeRunningProcess(),
     });
     expectErrorMatching(
-      await handleRunScript(fake.asRunner, { script: 'extends RefCounted\n# no execute\n' }),
+      await handleRunScript(fake.asRunner, { script: 'extends Reference\n# no execute\n' }),
       /func execute/i,
     );
   });

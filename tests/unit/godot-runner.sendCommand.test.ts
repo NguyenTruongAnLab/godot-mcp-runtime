@@ -256,7 +256,7 @@ describe('GodotRunner.sendCommandWithErrors reconnect (TCP)', () => {
 
     const pending = runner.sendCommandWithErrors(
       'run_script',
-      { source: 'extends RefCounted' },
+      { source: 'extends Reference' },
       5000,
     );
     await bridge.nextFrame();

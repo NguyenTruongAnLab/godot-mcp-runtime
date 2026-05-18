@@ -388,7 +388,7 @@ export const runtimeToolDefinitions: ToolDefinition[] = [
   {
     name: 'run_script',
     description:
-      'Execute a custom GDScript in the live running project with full scene tree access. Requires an active runtime session. Script must extend RefCounted and define func execute(scene_tree: SceneTree) -> Variant. Return values are JSON-serialized (primitives, Vector2/3, Color, Dictionary, Array, and Node path strings). Use print() for debug output — it appears in get_debug_output, not in the result. In spawned mode, stderr runtime errors escalate to errors (when the script returns null) or surface as warnings. Returns: { success, result, warnings?, tip? } where result is the JSON-serialized return value of execute().',
+      'Execute a custom GDScript in the live running project with full scene tree access. Requires an active runtime session. Script must extend Reference and define func execute(scene_tree: SceneTree) -> Variant. Return values are JSON-serialized (primitives, Vector2/3, Color, Dictionary, Array, and Node path strings). Use print() for debug output — it appears in get_debug_output, not in the result. In spawned mode, stderr runtime errors escalate to errors (when the script returns null) or surface as warnings. Returns: { success, result, warnings?, tip? } where result is the JSON-serialized return value of execute().',
     annotations: { destructiveHint: true },
     inputSchema: {
       type: 'object',
@@ -396,7 +396,7 @@ export const runtimeToolDefinitions: ToolDefinition[] = [
         script: {
           type: 'string',
           description:
-            'GDScript source code. Must contain "extends RefCounted" and "func execute(scene_tree: SceneTree) -> Variant".',
+            'GDScript source code. Must contain "extends Reference" and "func execute(scene_tree: SceneTree) -> Variant".',
         },
         timeout: {
           type: 'number',
@@ -1107,7 +1107,7 @@ export async function handleRunScript(runner: GodotRunner, args: OperationParams
   const script = args.script;
   if (typeof script !== 'string' || script.trim() === '') {
     return createErrorResponse('script is required and must be a non-empty string', [
-      'Provide GDScript source code with extends RefCounted and func execute(scene_tree: SceneTree) -> Variant',
+      'Provide GDScript source code with extends Reference and func execute(scene_tree: SceneTree) -> Variant',
     ]);
   }
 
@@ -1153,7 +1153,7 @@ export async function handleRunScript(runner: GodotRunner, args: OperationParams
     if (parsed.error) {
       return createErrorResponse(`Script execution error: ${parsed.error}`, [
         'Check your GDScript syntax',
-        'Ensure the script extends RefCounted',
+        'Ensure the script extends Reference',
         'Check get_debug_output for details',
       ]);
     }

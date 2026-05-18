@@ -138,7 +138,7 @@ describe('runtime bridge smoke', () => {
 
       // Inject a LineEdit, focus it via run_script
       const setupScript = `
-extends RefCounted
+extends Reference
 func execute(scene_tree: SceneTree) -> Variant:
 	var le = LineEdit.new()
 	le.name = "TestEntry"
@@ -170,7 +170,7 @@ func execute(scene_tree: SceneTree) -> Variant:
       );
 
       const readScript = `
-extends RefCounted
+extends Reference
 func execute(scene_tree: SceneTree) -> Variant:
 	var le = scene_tree.root.find_child("TestEntry", true, false)
 	return {"text": le.text if le else ""}
