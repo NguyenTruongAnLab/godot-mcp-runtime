@@ -194,7 +194,7 @@ describe('validateSubPath', () => {
 describe('validateNodePath', () => {
   it('accepts well-formed relative scene-tree paths', () => {
     expect(validateNodePath('root/Player')).toBe(true);
-    expect(validateNodePath('root/Player/Sprite2D')).toBe(true);
+    expect(validateNodePath('root/Player/Sprite')).toBe(true);
   });
 
   it('accepts absolute scene-tree paths', () => {
@@ -273,12 +273,12 @@ describe('createErrorResponse', () => {
 
 describe('extractJson', () => {
   it('strips Godot version banner before JSON object', () => {
-    const out = 'Godot Engine v4.5.stable\n{"ok": true}';
+    const out = 'Godot Engine v3.6.2.stable\n{"ok": true}';
     expect(JSON.parse(extractJson(out))).toEqual({ ok: true });
   });
 
   it('strips banner before JSON array', () => {
-    const out = 'Godot Engine v4.5.stable\n[1, 2, 3]';
+    const out = 'Godot Engine v3.6.2.stable\n[1, 2, 3]';
     expect(JSON.parse(extractJson(out))).toEqual([1, 2, 3]);
   });
 
@@ -294,18 +294,18 @@ describe('extractJson', () => {
 
 describe('cleanStdout', () => {
   it('routes JSON-object output through extractJson (strips banner)', () => {
-    const out = 'Godot Engine v4.5.stable\nINFO line\n{"ok": true}';
+    const out = 'Godot Engine v3.6.2.stable\nINFO line\n{"ok": true}';
     expect(JSON.parse(cleanStdout(out))).toEqual({ ok: true });
   });
 
   it('routes JSON-array output through extractJson (no `{` present)', () => {
-    const out = 'Godot Engine v4.5.stable\n[1, 2, 3]';
+    const out = 'Godot Engine v3.6.2.stable\n[1, 2, 3]';
     expect(JSON.parse(cleanStdout(out))).toEqual([1, 2, 3]);
   });
 
   it('routes plain non-JSON output through cleanOutput (drops banner)', () => {
     // No `{` or `[` anywhere — takes the cleanOutput branch.
-    const out = 'Godot Engine v4.5.stable\nplain success';
+    const out = 'Godot Engine v3.6.2.stable\nplain success';
     expect(cleanStdout(out)).toBe('plain success');
   });
 

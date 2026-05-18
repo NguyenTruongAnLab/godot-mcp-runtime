@@ -54,7 +54,7 @@ describe('executeSceneOp', () => {
   it('escalates empty stdout into an isError with extracted GD error from stderr', async () => {
     const fake = createFakeRunner({
       stdout: '   \n  ',
-      stderr: 'Godot v4.4 ...\n[ERROR] node not found at root/Missing\nmore noise',
+      stderr: 'Godot v3.6.2 ...\n[ERROR] node not found at root/Missing\nmore noise',
     });
     const result = await executeSceneOp(
       fake.asRunner,

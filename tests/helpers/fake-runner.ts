@@ -40,8 +40,8 @@ export interface FakeRunnerOptions {
   /** Override per call by index. Each entry shadows the defaults above. */
   responses?: Array<Partial<Pick<FakeRunnerOptions, 'stdout' | 'stderr' | 'throws'>>>;
   /**
-   * Godot version string returned by getVersion() (e.g. "4.4.1.stable").
-   * Default: "4.3.stable".
+   * Godot version string returned by getVersion() (e.g. "3.6.2.stable").
+   * Default: "3.6.2.stable".
    */
   godotVersion?: string;
 }
@@ -61,7 +61,7 @@ export function createFakeRunner(options: FakeRunnerOptions = {}): FakeRunner {
     throws: options.throws,
   };
   const responses = options.responses ?? [];
-  const godotVersion = options.godotVersion ?? '4.3.stable';
+  const godotVersion = options.godotVersion ?? '3.6.2.stable';
 
   const fake = {
     calls,

@@ -10,7 +10,7 @@ tests/
 ├── integration/      Tests that touch fixtures or run real Godot.
 │                     Godot-required tests skip when GODOT_PATH is unset.
 ├── fixtures/         Committed test inputs.
-│   └── godot-project/  Minimal Godot 4 project (Node2D + Label + Sprite2D)
+│   └── godot-project/  Minimal Godot 3 project (Node2D + Label + Sprite)
 └── README.md         This file.
 ```
 
@@ -45,7 +45,7 @@ npm run test:coverage # v8 coverage report (no enforcement, just visibility)
 
 ## Godot-required tests
 
-Tests that need a real Godot process gate themselves with the `itGodot` wrapper from `tests/helpers/godot-skip.ts` (which is `it.skipIf(!process.env.GODOT_PATH)`). Set `GODOT_PATH` to your Godot 4.x executable to run them locally:
+Tests that need a real Godot process gate themselves with the `itGodot` wrapper from `tests/helpers/godot-skip.ts` (which is `it.skipIf(!process.env.GODOT_PATH)`). Set `GODOT_PATH` to your Godot 3.x executable to run them locally:
 
 ```
 # bash / git bash
@@ -65,7 +65,7 @@ If the fixture exercises tools that require Godot, add a row to the coverage map
 
 ## Gotchas worth knowing before debugging a test
 
-- **`root/...` is a virtual path prefix, not the fixture's actual root node name.** The committed fixture's root node is `[node name="Main"]`, but tests address it as `root/Label`, `root/Sprite2D`, etc. The bridge in `src/scripts/godot_operations.gd::find_node_by_path` translates `root` → the actual scene root regardless of its name. Don't go hunting in the `.tscn` for a node literally called `root`.
+- **`root/...` is a virtual path prefix, not the fixture's actual root node name.** The committed fixture's root node is `[node name="Main"]`, but tests address it as `root/Label`, `root/Sprite`, etc. The bridge in `src/scripts/godot_operations.gd::find_node_by_path` translates `root` → the actual scene root regardless of its name. Don't go hunting in the `.tscn` for a node literally called `root`.
 
 ## Testing rubric
 
