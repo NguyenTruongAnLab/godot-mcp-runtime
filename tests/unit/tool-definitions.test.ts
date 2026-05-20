@@ -5,6 +5,12 @@ import { projectToolDefinitions } from '../../src/tools/project-tools.js';
 import { sceneToolDefinitions } from '../../src/tools/scene-tools.js';
 import { nodeToolDefinitions } from '../../src/tools/node-tools.js';
 import { validateToolDefinitions } from '../../src/tools/validate-tools.js';
+import { scriptToolDefinitions } from '../../src/tools/script-tools.js';
+import { inputToolDefinitions } from '../../src/tools/input-tools.js';
+import { resourceToolDefinitions } from '../../src/tools/resource-tools.js';
+import { tilemapToolDefinitions } from '../../src/tools/tilemap-tools.js';
+import { animationToolDefinitions } from '../../src/tools/animation-tools.js';
+import { shaderToolDefinitions } from '../../src/tools/shader-tools.js';
 import type { ToolDefinition } from '../../src/utils/godot-runner.js';
 
 const allDefinitions: ToolDefinition[] = [
@@ -14,6 +20,12 @@ const allDefinitions: ToolDefinition[] = [
   ...sceneToolDefinitions,
   ...nodeToolDefinitions,
   ...validateToolDefinitions,
+  ...scriptToolDefinitions,
+  ...inputToolDefinitions,
+  ...resourceToolDefinitions,
+  ...tilemapToolDefinitions,
+  ...animationToolDefinitions,
+  ...shaderToolDefinitions,
 ];
 
 describe('tool definitions — per-tool shape contract', () => {

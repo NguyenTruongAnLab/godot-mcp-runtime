@@ -21,7 +21,7 @@ class PeerState:
 	var expected_len = -1   # -1 = waiting on header
 	var handling = false   # true while a command is awaiting a response
 
-var tcp_server: TCPServer
+var tcp_server: TCP_Server
 var session_token: String = ""
 var _peers: Array = []   # Array of PeerState
 var _shutting_down: bool = false  # One-shot: set true in shutdown(); never reset (autoload is recreated on next session)
@@ -29,7 +29,8 @@ var _shutting_down: bool = false  # One-shot: set true in shutdown(); never rese
 func _ready() -> void:
 	pause_mode = Node.PAUSE_MODE_PROCESS
 	session_token = OS.get_environment("MCP_SESSION_TOKEN")
-	tcp_server = TCPServer.new()
+	print("McpBridge: Session token read: '", session_token, "'")
+	tcp_server = TCP_Server.new()
 	var err = tcp_server.listen(PORT, "127.0.0.1")
 	if err != OK:
 		push_error("McpBridge: Failed to listen on port %d (error %d)" % [PORT, err])
@@ -63,10 +64,9 @@ func _process(_delta: float) -> void:
 		var peer = _peers[i]
 		_poll_peer(peer)
 		if peer.stream == null or peer.stream.get_status() != StreamPeerTCP.STATUS_CONNECTED:
-			_peers.remove_at(i)
+			_peers.remove(i)
 
 func _poll_peer(peer: PeerState) -> void:
-	peer.stream.poll()
 	var status := peer.stream.get_status()
 	if status != StreamPeerTCP.STATUS_CONNECTED:
 		return
@@ -76,7 +76,13 @@ func _poll_peer(peer: PeerState) -> void:
 		var chunk: Array = peer.stream.get_partial_data(available)
 		# get_partial_data returns [error, PoolByteArray]
 		if chunk[0] == OK:
-			peer.buffer.append_array(chunk[1])
+			print("McpBridge: Read chunk of size %d" % chunk[1].size())
+			var buf = peer.buffer
+			buf.append_array(chunk[1])
+			peer.buffer = buf
+			print("McpBridge: Buffer size after append: %d" % peer.buffer.size())
+		else:
+			print("McpBridge: Error reading chunk: %d" % chunk[0])
 
 	while true:
 		if peer.expected_len < 0:
@@ -89,6 +95,7 @@ func _poll_peer(peer: PeerState) -> void:
 			var b2 := int(header[2])
 			var b3 := int(header[3])
 			peer.expected_len = (b0 << 24) | (b1 << 16) | (b2 << 8) | b3
+			print("McpBridge: Read frame header, expected body length: %d" % peer.expected_len)
 			if FRAME_HEADER_BYTES >= peer.buffer.size():
 				peer.buffer = PoolByteArray()
 			else:
@@ -113,7 +120,7 @@ func _poll_peer(peer: PeerState) -> void:
 			peer.buffer = peer.buffer.subarray(peer.expected_len, peer.buffer.size() - 1)
 		peer.expected_len = -1
 
-		var data := frame_bytes.get_string_from_utf8().strip_edges()
+		var data: String = frame_bytes.get_string_from_utf8().strip_edges()
 		peer.handling = true
 		_dispatch_command(peer, data)
 		# _dispatch_command yields internally on async branches (input, run_script,
@@ -128,6 +135,7 @@ func _poll_peer(peer: PeerState) -> void:
 # peer — the next frame will never be polled. When adding a new branch,
 # ensure the early-exit calls `_send_response` with an error payload.
 func _dispatch_command(peer: PeerState, data: String) -> void:
+	print("McpBridge: Dispatching command data: ", data)
 	if not data.begins_with("{"):
 		_send_response(peer, {"error": "Non-JSON frame (expected a JSON command object)"})
 		return
@@ -273,7 +281,7 @@ func _handle_input(peer: PeerState, actions: Array) -> void:
 					break
 			"wait":
 				var ms = action.get("ms", 0)
-				if typeof(ms) == TYPE_FLOAT or typeof(ms) == TYPE_INT:
+				if typeof(ms) == TYPE_REAL or typeof(ms) == TYPE_INT:
 					if ms > 0:
 						yield(get_tree().create_timer(ms / 1000.0), "timeout")
 				else:
@@ -302,7 +310,7 @@ func _inject_key(action: Dictionary) -> String:
 		return "key name is required"
 
 	var scancode = OS.find_scancode_from_string(key_name)
-	if scancode == KEY_NONE:
+	if scancode == 0:
 		return "unrecognized key name: '%s'" % key_name
 
 	var event = InputEventKey.new()
@@ -335,7 +343,7 @@ func _resolve_button_name(button_name: String) -> Array:
 		"middle":
 			return [BUTTON_MIDDLE, ""]
 		_:
-			return [BUTTON_NONE, "unknown button: '%s' (use 'left', 'right', or 'middle')" % button_name]
+			return [0, "unknown button: '%s' (use 'left', 'right', or 'middle')" % button_name]
 
 func _inject_mouse_button(action: Dictionary) -> String:
 	var button_result := _resolve_button_name(action.get("button", "left"))
@@ -560,7 +568,7 @@ func _serialize_value(value):
 		return null
 
 	match typeof(value):
-		TYPE_BOOL, TYPE_INT, TYPE_FLOAT, TYPE_STRING:
+		TYPE_BOOL, TYPE_INT, TYPE_REAL, TYPE_STRING:
 			return value
 		TYPE_VECTOR2:
 			var v: Vector2 = value

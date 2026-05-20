@@ -22,6 +22,12 @@ import { projectToolDefinitions } from './tools/project-tools.js';
 import { sceneToolDefinitions } from './tools/scene-tools.js';
 import { nodeToolDefinitions } from './tools/node-tools.js';
 import { validateToolDefinitions } from './tools/validate-tools.js';
+import { scriptToolDefinitions } from './tools/script-tools.js';
+import { inputToolDefinitions } from './tools/input-tools.js';
+import { resourceToolDefinitions } from './tools/resource-tools.js';
+import { tilemapToolDefinitions } from './tools/tilemap-tools.js';
+import { animationToolDefinitions } from './tools/animation-tools.js';
+import { shaderToolDefinitions } from './tools/shader-tools.js';
 
 export const allToolDefinitions = [
   ...runtimeToolDefinitions,
@@ -30,6 +36,12 @@ export const allToolDefinitions = [
   ...sceneToolDefinitions,
   ...nodeToolDefinitions,
   ...validateToolDefinitions,
+  ...scriptToolDefinitions,
+  ...inputToolDefinitions,
+  ...resourceToolDefinitions,
+  ...tilemapToolDefinitions,
+  ...animationToolDefinitions,
+  ...shaderToolDefinitions,
 ];
 
 export const serverInstructions = `Godot MCP Server — AI-driven Godot 3.x project manipulation.
@@ -37,9 +49,10 @@ export const serverInstructions = `Godot MCP Server — AI-driven Godot 3.x proj
 Tool categories:
 - Project management: launch_editor, run_project, attach_project, detach_project, stop_project, get_debug_output, list_projects, get_project_info
 - Scene editing (headless): create_scene, add_node, load_sprite, save_scene, export_mesh_library, batch_scene_operations
-- Node editing (headless): delete_nodes, set_node_properties, get_node_properties, attach_script, get_scene_tree, duplicate_node, get_node_signals, connect_signal, disconnect_signal
+- Node editing (headless): delete_nodes, set_node_properties, get_node_properties, attach_script, get_scene_tree, duplicate_node, get_node_signals, connect_signal, disconnect_signal, set_node_metadata, get_node_metadata
 - Runtime (requires run_project or attach_project): take_screenshot, simulate_input, get_ui_elements, run_script
-- Project config (no Godot process): list_autoloads, add_autoload, remove_autoload, update_autoload, get_project_files, search_project, get_scene_dependencies, get_project_settings
+- Project config & Scripting (no Godot process): list_autoloads, add_autoload, remove_autoload, update_autoload, get_project_files, search_project, get_scene_dependencies, get_project_settings, list_script_elements, add_script_variable, add_script_signal, add_script_function, remove_script_function, list_input_actions, add_input_action, remove_input_action
+- Resource & Material compiling: create_tres_resource, apply_spatial_material, create_shader_resource, apply_shader_material, set_tilemap_cell, set_gridmap_cell, configure_animation
 - Validation: validate
 
 Key behaviors:

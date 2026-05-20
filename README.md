@@ -1,4 +1,6 @@
-# Godot MCP Runtime
+# Godot MCP Runtime (Community Fork)
+
+> **Acknowledgments:** This project is a community-driven fork tailored for the Godot 3.x developer ecosystem. All credit for the original core architecture and system design belongs to the original author. The upstream repository can be found at [Erodenn/godot-mcp-runtime](https://github.com/Erodenn/godot-mcp-runtime).
 
 <p align="center">
   <a href="https://glama.ai/mcp/servers/@Erodenn/godot-mcp-runtime"><img width="380" height="200" src="https://glama.ai/mcp/servers/@Erodenn/godot-runtime-mcp/badge" alt="godot-runtime-mcp MCP server"></a>
@@ -33,7 +35,8 @@ Think of it as [Playwright MCP](https://github.com/microsoft/playwright-mcp), bu
 ## Contents
 
 - [What It Does](#what-it-does)
-- [Quick Start](#quick-start)
+- [Quick Start & Google Antigravity IDE Setup](#quick-start--google-antigravity-ide-setup)
+- [Godot 3 AI Game Development Tutorial](#godot-3-ai-game-development-tutorial)
 - [Docs](#docs)
 - [Acknowledgments](#acknowledgments)
 - [License](#license)
@@ -60,96 +63,59 @@ Think of it as [Playwright MCP](https://github.com/microsoft/playwright-mcp), bu
 
 The bridge cleans itself up automatically when `stop_project` or `detach_project` is called. No leftover autoloads, no modified project files.
 
-## Quick Start
+## Quick Start & Google Antigravity IDE Setup
 
 ### Prerequisites
 
 - [Node.js](https://nodejs.org/) v20+
 - [Godot 3.5+ (3.6.2 recommended)](https://godotengine.org/)
+- **Google Antigravity IDE**
 
-That's it. No Godot addon, no project modifications.
+### Configure Google Antigravity IDE
 
-### Configure Your MCP Client
+Add the following to your MCP client config file in the Antigravity ecosystem (typically located at `C:\Users\<Username>\.gemini\antigravity-ide\mcp_config.json`).
 
-Add the following to your MCP client config. Works with Claude Code, Claude Desktop, Cursor, or any MCP-compatible client.
-
-**Zero-install via npx (recommended):**
-
-```json
-{
-  "mcpServers": {
-    "godot": {
-      "command": "npx",
-      "args": ["-y", "godot-mcp-runtime"],
-      "env": {
-        "GODOT_PATH": "<path-to-godot-executable>"
-      }
-    }
-  }
-}
-```
-
-**Or install globally:**
-
-```bash
-npm install -g godot-mcp-runtime
-```
+> [!IMPORTANT]
+> **Windows path gotchas.** `GODOT_PATH` must point at the Godot executable itself, not its install folder. Backslashes in JSON must be escaped or replaced with forward slashes.
 
 ```json
 {
   "mcpServers": {
-    "godot": {
-      "command": "godot-mcp-runtime",
-      "env": {
-        "GODOT_PATH": "<path-to-godot-executable>"
-      }
-    }
-  }
-}
-```
-
-**Or clone from source:**
-
-```bash
-git clone https://github.com/Erodenn/godot-mcp-runtime.git
-cd godot-mcp-runtime
-npm install
-npm run build
-```
-
-```json
-{
-  "mcpServers": {
-    "godot": {
+    "godot-mcp": {
       "command": "node",
       "args": ["<path-to>/godot-mcp-runtime/dist/index.js"],
       "env": {
-        "GODOT_PATH": "<path-to-godot-executable>"
+        "GODOT_PATH": "C:/Path/To/Godot_v3.6.2-stable_win64.exe",
+        "DEBUG": "true"
       }
     }
   }
 }
 ```
 
-> [!TIP]
-> **Prefer pnpm?** All three install paths work with pnpm. Substitute `pnpm dlx godot-mcp-runtime` for `npx -y godot-mcp-runtime`, `pnpm add -g godot-mcp-runtime` for the global install, or `pnpm install && pnpm run build` for the source build. pnpm ships stronger defaults against npm supply-chain attacks; see [pnpm's supply chain security guide](https://pnpm.io/supply-chain-security).
-
-If Godot is on your `PATH`, you can omit `GODOT_PATH` entirely. The server will auto-detect it. Set `"DEBUG": "true"` in `env` for verbose logging.
-
-> [!IMPORTANT]
-> **Windows path gotchas.** `GODOT_PATH` must point at the Godot executable itself, not its install folder. Backslashes in JSON must be escaped or replaced with forward slashes:
->
-> ```json
-> "GODOT_PATH": "D:\\Godot\\Godot_v3.6.2-stable_win64.exe"
-> // or equivalently
-> "GODOT_PATH": "D:/Godot/Godot_v3.6.2-stable_win64.exe"
-> ```
->
-> Setting the variable from a wrapper `.bat` does not propagate to the MCP server — the path must live in the client's `env` block above.
-
 ### Verify
 
-Ask your AI assistant to call `get_project_info`. If it returns a Godot version string (e.g., `3.6.2.stable`), you're connected and working.
+Ask your AI assistant in Antigravity IDE to call `get_project_info`. If it returns a Godot version string (e.g., `3.6.2.stable`), you're connected and working.
+
+## Godot 3 AI Game Development Tutorial
+
+With the Godot MCP Runtime connected to your Antigravity IDE, you can guide the AI to assist in game development automatically:
+
+**Step 1: Headless Scene Creation**
+Prompt the AI: _"Create a new scene called Player.tscn with a KinematicBody2D root."_
+The AI will use `create_scene` to instantly generate the scene file headlessly.
+
+**Step 2: Attaching Visuals and Collision**
+Prompt the AI: _"Add a Sprite named 'Skin' and a CollisionShape2D inside Player. Use placeholder.png as the texture."_
+The AI will execute `add_node` and `load_sprite` to build the hierarchy and save it via `save_scene`.
+
+**Step 3: Scripting**
+Prompt the AI: _"Write a GDScript for 4-way movement and attach it to the Player."_
+The AI will use `attach_script` to bind the behavior. You can then use `run_project` to launch the live game window.
+
+**Step 4: Runtime Testing**
+Prompt the AI: _"Hold the right arrow key for 2 seconds, then take a screenshot of the game window."_
+The AI will invoke `simulate_input` to feed events to Godot, followed by `take_screenshot` to report back visually without you having to manually playtest the inputs.
 
 ## Docs
 
@@ -160,8 +126,6 @@ Ask your AI assistant to call `get_project_info`. If it returns a Godot version 
 ## Acknowledgments
 
 Built on the foundation laid by [Coding-Solo/godot-mcp](https://github.com/Coding-Solo/godot-mcp) for headless Godot operations.
-
-Developed with [Claude Code](https://claude.ai/code).
 
 ## License
 

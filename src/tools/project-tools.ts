@@ -1,6 +1,11 @@
 import { join, basename } from 'path';
-import { existsSync, readdirSync, readFileSync } from 'fs';
-import type { GodotRunner, OperationParams, ToolDefinition } from '../utils/godot-runner.js';
+import { existsSync, readdirSync, readFileSync, writeFileSync } from 'fs';
+import type {
+  GodotRunner,
+  OperationParams,
+  ToolDefinition,
+  ToolResponse,
+} from '../utils/godot-runner.js';
 import {
   normalizeParameters,
   validatePath,
@@ -169,6 +174,52 @@ export const projectToolDefinitions: ToolDefinition[] = [
         },
       },
       required: ['projectPath'],
+    },
+  },
+  {
+    name: 'set_project_setting',
+    description:
+      'Safely write, update, or create a key-value setting inside project.godot under a specific section. No running Godot process required. Returns plain-text confirmation on success.',
+    annotations: { idempotentHint: true },
+    inputSchema: {
+      type: 'object',
+      properties: {
+        projectPath: { type: 'string', description: 'Path to the Godot project directory' },
+        section: {
+          type: 'string',
+          description: 'The section header in project.godot (e.g. "display")',
+        },
+        key: {
+          type: 'string',
+          description: 'The setting key to configure (e.g. "window/size/width")',
+        },
+        value: {
+          type: ['string', 'number', 'boolean'],
+          description: 'The value to assign to this setting (e.g. 1024, true, or a string)',
+        },
+      },
+      required: ['projectPath', 'section', 'key', 'value'],
+    },
+  },
+  {
+    name: 'set_collision_layer_name',
+    description:
+      'Set or update the name of a 2D or 3D physics collision layer (1-32) in project.godot. No running Godot process required. Returns plain-text confirmation on success.',
+    annotations: { idempotentHint: true },
+    inputSchema: {
+      type: 'object',
+      properties: {
+        projectPath: { type: 'string', description: 'Path to the Godot project directory' },
+        type: { type: 'string', enum: ['2d', '3d'], description: 'Physics dimension type' },
+        layerIndex: {
+          type: 'number',
+          minimum: 1,
+          maximum: 32,
+          description: 'Collision layer index (1 to 32)',
+        },
+        name: { type: 'string', description: 'Friendly name to assign to the collision layer' },
+      },
+      required: ['projectPath', 'type', 'layerIndex', 'name'],
     },
   },
 ];
@@ -624,5 +675,161 @@ export async function handleGetProjectSettings(args: OperationParams) {
     return createErrorResponse(`Failed to get project settings: ${getErrorMessage(error)}`, [
       'Check if project.godot is accessible',
     ]);
+  }
+}
+
+export function serializeIniValue(val: unknown): string {
+  if (typeof val === 'boolean') {
+    return val ? 'true' : 'false';
+  }
+  if (typeof val === 'number') {
+    return val.toString();
+  }
+  if (typeof val === 'string') {
+    if (/^(ExtResource|SubResource|Vector2|Vector3|Color|Rect2|Object)\(.*\)$/.test(val)) {
+      return val;
+    }
+    return JSON.stringify(val);
+  }
+  return String(val);
+}
+
+export function modifyProjectGodotInPlace(
+  projectFile: string,
+  section: string,
+  key: string,
+  serializedValue: string,
+): void {
+  const content = readFileSync(projectFile, 'utf8');
+  const lines = content.split(/\r?\n/);
+
+  let targetSectionLine = -1;
+  let nextSectionLine = -1;
+  const targetHeader = `[${section}]`;
+
+  for (let i = 0; i < lines.length; i++) {
+    const trimmed = lines[i].trim();
+    if (trimmed === targetHeader) {
+      targetSectionLine = i;
+      for (let j = i + 1; j < lines.length; j++) {
+        if (lines[j].trim().startsWith('[') && lines[j].trim().endsWith(']')) {
+          nextSectionLine = j;
+          break;
+        }
+      }
+      break;
+    }
+  }
+
+  const keyEntry = `${key}=${serializedValue}`;
+
+  if (targetSectionLine === -1) {
+    const newContent = content.trimEnd() + `\n\n[${section}]\n\n${keyEntry}\n`;
+    writeFileSync(projectFile, newContent, 'utf8');
+    return;
+  }
+
+  const searchEnd = nextSectionLine === -1 ? lines.length : nextSectionLine;
+  let keyLineIdx = -1;
+  const keyPrefix = `${key}=`;
+
+  for (let i = targetSectionLine + 1; i < searchEnd; i++) {
+    const trimmed = lines[i].trim().replace(/\s*=\s*/, '=');
+    if (trimmed.startsWith(keyPrefix)) {
+      keyLineIdx = i;
+      break;
+    }
+  }
+
+  if (keyLineIdx !== -1) {
+    lines[keyLineIdx] = keyEntry;
+  } else {
+    lines.splice(targetSectionLine + 1, 0, keyEntry);
+  }
+
+  writeFileSync(projectFile, lines.join('\n'), 'utf8');
+}
+
+export async function handleSetProjectSetting(
+  _runner: any,
+  args: OperationParams,
+): Promise<ToolResponse> {
+  args = normalizeParameters(args);
+  const v = validateProjectArgs(args);
+  if ('isError' in v) return v;
+
+  if (!args.section || typeof args.section !== 'string') {
+    return createErrorResponse('section is required', ['Provide a valid section header']);
+  }
+  if (!args.key || typeof args.key !== 'string') {
+    return createErrorResponse('key is required', ['Provide a valid setting key']);
+  }
+  if (args.value === undefined) {
+    return createErrorResponse('value is required', ['Provide a value to configure']);
+  }
+
+  try {
+    const projectFile = projectGodotPath(v.projectPath);
+    const serialized = serializeIniValue(args.value);
+    modifyProjectGodotInPlace(projectFile, args.section as string, args.key as string, serialized);
+
+    return {
+      content: [
+        {
+          type: 'text',
+          text: `Successfully configured setting "${args.section}/${args.key}" to value: ${serialized}`,
+        },
+      ],
+    };
+  } catch (error: unknown) {
+    return createErrorResponse(`Failed to configure project setting: ${getErrorMessage(error)}`);
+  }
+}
+
+export async function handleSetCollisionLayerName(
+  _runner: any,
+  args: OperationParams,
+): Promise<ToolResponse> {
+  args = normalizeParameters(args);
+  const v = validateProjectArgs(args);
+  if ('isError' in v) return v;
+
+  const type = args.type as string;
+  if (!type || !['2d', '3d'].includes(type)) {
+    return createErrorResponse('type must be "2d" or "3d"', [
+      'Provide a valid physics dimension type',
+    ]);
+  }
+
+  const layerIndex = Number(args.layerIndex);
+  if (isNaN(layerIndex) || layerIndex < 1 || layerIndex > 32) {
+    return createErrorResponse('layerIndex must be an integer between 1 and 32', [
+      'Provide a valid layer index in range [1, 32]',
+    ]);
+  }
+
+  if (args.name === undefined || typeof args.name !== 'string') {
+    return createErrorResponse('name is required as a string', [
+      'Provide the friendly name for the layer',
+    ]);
+  }
+
+  try {
+    const projectFile = projectGodotPath(v.projectPath);
+    const section = type === '2d' ? 'layer_names/2d_physics' : 'layer_names/3d_physics';
+    const key = `layer_${layerIndex}`;
+    const serialized = serializeIniValue(args.name);
+    modifyProjectGodotInPlace(projectFile, section, key, serialized);
+
+    return {
+      content: [
+        {
+          type: 'text',
+          text: `Successfully named ${type.toUpperCase()} physics layer ${layerIndex} to "${args.name}"`,
+        },
+      ],
+    };
+  } catch (error: unknown) {
+    return createErrorResponse(`Failed to set collision layer name: ${getErrorMessage(error)}`);
   }
 }

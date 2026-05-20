@@ -47,6 +47,8 @@ import {
   handleSearchProject,
   handleGetSceneDependencies,
   handleGetProjectSettings,
+  handleSetProjectSetting,
+  handleSetCollisionLayerName,
 } from './tools/project-tools.js';
 
 import {
@@ -56,6 +58,7 @@ import {
   handleSaveScene,
   handleExportMeshLibrary,
   handleBatchSceneOperations,
+  handleInstanceScene,
 } from './tools/scene-tools.js';
 
 import {
@@ -68,9 +71,45 @@ import {
   handleGetNodeSignals,
   handleConnectSignal,
   handleDisconnectSignal,
+  handleSetNodeMetadata,
+  handleGetNodeMetadata,
+  handleSetupControl,
+  handleSetupCollision,
+  handleAddMeshInstance,
+  handleSetPhysicsLayers,
+  handleGetPhysicsLayers,
+  handleAddRaycast,
+  handleSetupCamera,
+  handleSetupLighting,
+  handleSetupEnvironment,
+  handleSetupNavigation3D,
+  handleCreateParticles3D,
+  handleSetupAnimationTree,
+  handleSetupCollision3D,
+  handleSetupJoint3D,
 } from './tools/node-tools.js';
 
 import { handleValidate } from './tools/validate-tools.js';
+
+import {
+  handleListScriptElements,
+  handleAddScriptVariable,
+  handleAddScriptSignal,
+  handleAddScriptFunction,
+  handleRemoveScriptFunction,
+} from './tools/script-tools.js';
+
+import {
+  handleListInputActions,
+  handleAddInputAction,
+  handleRemoveInputAction,
+} from './tools/input-tools.js';
+
+import { handleCreateTresResource, handleApplySpatialMaterial } from './tools/resource-tools.js';
+
+import { handleSetTilemapCell, handleSetGridmapCell } from './tools/tilemap-tools.js';
+import { handleConfigureAnimation } from './tools/animation-tools.js';
+import { handleCreateShaderResource, handleApplyShaderMaterial } from './tools/shader-tools.js';
 
 export const toolDispatch: Record<string, ToolHandler> = {
   // Project tools
@@ -94,6 +133,8 @@ export const toolDispatch: Record<string, ToolHandler> = {
   search_project: (_runner, args) => handleSearchProject(args),
   get_scene_dependencies: (_runner, args) => handleGetSceneDependencies(args),
   get_project_settings: (_runner, args) => handleGetProjectSettings(args),
+  set_project_setting: (_runner, args) => handleSetProjectSetting(_runner, args),
+  set_collision_layer_name: (_runner, args) => handleSetCollisionLayerName(_runner, args),
 
   // Scene tools
   create_scene: handleCreateScene,
@@ -102,6 +143,7 @@ export const toolDispatch: Record<string, ToolHandler> = {
   save_scene: handleSaveScene,
   export_mesh_library: handleExportMeshLibrary,
   batch_scene_operations: handleBatchSceneOperations,
+  instance_scene: handleInstanceScene,
 
   // Node tools
   delete_nodes: handleDeleteNodes,
@@ -113,9 +155,46 @@ export const toolDispatch: Record<string, ToolHandler> = {
   get_node_signals: handleGetNodeSignals,
   connect_signal: handleConnectSignal,
   disconnect_signal: handleDisconnectSignal,
+  set_node_metadata: handleSetNodeMetadata,
+  get_node_metadata: handleGetNodeMetadata,
+  setup_control: handleSetupControl,
+  setup_collision: handleSetupCollision,
+  add_mesh_instance: handleAddMeshInstance,
+  set_physics_layers: handleSetPhysicsLayers,
+  get_physics_layers: handleGetPhysicsLayers,
+  add_raycast: handleAddRaycast,
+  setup_camera: handleSetupCamera,
+  setup_lighting: handleSetupLighting,
+  setup_environment: handleSetupEnvironment,
+  setup_navigation_3d: handleSetupNavigation3D,
+  create_particles_3d: handleCreateParticles3D,
+  setup_animation_tree: handleSetupAnimationTree,
+  setup_collision_3d: handleSetupCollision3D,
+  setup_joint_3d: handleSetupJoint3D,
 
   // Validate tools
   validate: handleValidate,
+
+  // Script tools
+  list_script_elements: handleListScriptElements,
+  add_script_variable: handleAddScriptVariable,
+  add_script_signal: handleAddScriptSignal,
+  add_script_function: handleAddScriptFunction,
+  remove_script_function: handleRemoveScriptFunction,
+
+  // Input tools
+  list_input_actions: handleListInputActions,
+  add_input_action: handleAddInputAction,
+  remove_input_action: handleRemoveInputAction,
+
+  // Resource tools
+  create_tres_resource: handleCreateTresResource,
+  apply_spatial_material: handleApplySpatialMaterial,
+  set_tilemap_cell: handleSetTilemapCell,
+  set_gridmap_cell: handleSetGridmapCell,
+  configure_animation: handleConfigureAnimation,
+  create_shader_resource: handleCreateShaderResource,
+  apply_shader_material: handleApplyShaderMaterial,
 };
 
 export async function dispatchToolCall(

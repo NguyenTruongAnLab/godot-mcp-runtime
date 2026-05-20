@@ -44,3 +44,7 @@ Thumbs.db
 
 # Loose plans, scoping notes, follow-ups — local working docs only.
 plans/
+
+# Local testing and scratch directories
+scratch/
+scripts/mcp-runner.js

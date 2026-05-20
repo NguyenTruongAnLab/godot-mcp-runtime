@@ -228,6 +228,42 @@ export const sceneToolDefinitions: ToolDefinition[] = [
       },
     },
   },
+  {
+    name: 'instance_scene',
+    description:
+      'Instance a Godot scene file as a child of a node in another scene. Saves automatically. Useful for assembling complex levels out of modular scene files (e.g., instancing a Player.tscn or Hazard.tscn into Level.tscn). nodeName defaults to the instanced scene root name. parentNodePath defaults to the root node. Vector2/Vector3 values can be set as top-level params or in properties and auto-convert. Returns a plain-text confirmation.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        projectPath: { type: 'string', description: 'Path to the Godot project directory' },
+        scenePath: {
+          type: 'string',
+          description: 'Scene file path to modify (relative to project)',
+        },
+        instancePath: {
+          type: 'string',
+          description: 'Scene file path to instance (relative to project)',
+        },
+        nodeName: { type: 'string', description: 'Name for the instanced node (optional)' },
+        parentNodePath: { type: 'string', description: 'Parent node path (defaults to root)' },
+        position: {
+          type: 'object',
+          description: 'Vector2 position for 2D scenes (e.g. {"x": 10, "y": 20})',
+          properties: { x: { type: 'number' }, y: { type: 'number' } },
+        },
+        translation: {
+          type: 'object',
+          description: 'Vector3 translation for 3D scenes (e.g. {"x": 0, "y": 1, "z": 0})',
+          properties: { x: { type: 'number' }, y: { type: 'number' }, z: { type: 'number' } },
+        },
+        properties: {
+          type: 'object',
+          description: 'Additional properties to set on the instanced scene root',
+        },
+      },
+      required: ['projectPath', 'scenePath', 'instancePath'],
+    },
+  },
 ];
 
 // --- Handlers ---
@@ -384,5 +420,49 @@ export async function handleBatchSceneOperations(runner: GodotRunner, args: Oper
     v.projectPath,
     'Batch scene operations failed',
     ['Check that all scene paths exist', 'Ensure node types are valid'],
+  );
+}
+
+export async function handleInstanceScene(runner: GodotRunner, args: OperationParams) {
+  args = normalizeParameters(args);
+  const v = validateSceneArgs(args);
+  if ('isError' in v) return v;
+
+  if (!args.instancePath || !validateSubPath(v.projectPath, args.instancePath as string)) {
+    return createErrorResponse('Valid instancePath is required', [
+      'Provide a relative scene path to instance that stays inside the project directory',
+    ]);
+  }
+  const instanceFullPath = join(v.projectPath, args.instancePath as string);
+  if (!existsSync(instanceFullPath)) {
+    return createErrorResponse(`Instance scene file does not exist: ${args.instancePath}`, [
+      'Ensure the instance path is correct',
+    ]);
+  }
+
+  // Merge promoted top-level params into properties dict
+  const promotedKeys = ['position', 'translation'] as const;
+  const mergedProps: OperationParams = (args.properties as OperationParams) || {};
+  for (const key of promotedKeys) {
+    if (args[key] !== undefined) {
+      mergedProps[key] = args[key];
+    }
+  }
+
+  const params: OperationParams = {
+    scenePath: args.scenePath,
+    instancePath: args.instancePath,
+  };
+  if (args.nodeName) params.nodeName = args.nodeName;
+  if (args.parentNodePath) params.parentNodePath = args.parentNodePath;
+  if (Object.keys(mergedProps).length > 0) params.properties = mergedProps;
+
+  return executeSceneOp(
+    runner,
+    'instance_scene',
+    params,
+    v.projectPath,
+    'Failed to instance scene',
+    ['Ensure parentNodePath exists', 'Check if the scene to instance is a valid .tscn file'],
   );
 }

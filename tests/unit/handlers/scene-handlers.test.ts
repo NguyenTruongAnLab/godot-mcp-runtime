@@ -6,6 +6,7 @@ import {
   handleSaveScene,
   handleExportMeshLibrary,
   handleBatchSceneOperations,
+  handleInstanceScene,
 } from '../../../src/tools/scene-tools.js';
 import { createFakeRunner } from '../../helpers/fake-runner.js';
 import { hasError, expectErrorMatching } from '../../helpers/assertions.js';
@@ -469,5 +470,63 @@ describe('handleBatchSceneOperations', () => {
     const parsed = JSON.parse(text);
     expect(parsed.results[0].success).toBe(true);
     expect(parsed.results[0].operation).toBe('add_node');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// handleInstanceScene
+// ---------------------------------------------------------------------------
+
+describe('handleInstanceScene', () => {
+  it('rejects missing projectPath', async () => {
+    const fake = createFakeRunner();
+    const result = await handleInstanceScene(fake.asRunner, {
+      scenePath: fixtureScenePath,
+      instancePath: 'Player.tscn',
+    });
+    expectErrorMatching(result, /projectPath/i);
+  });
+
+  it('rejects missing instancePath', async () => {
+    const fake = createFakeRunner();
+    const result = await handleInstanceScene(fake.asRunner, {
+      projectPath: fixtureProjectPath,
+      scenePath: fixtureScenePath,
+    });
+    expectErrorMatching(result, /instancePath/i);
+  });
+
+  it('rejects nonexistent instance scene file', async () => {
+    const fake = createFakeRunner();
+    const result = await handleInstanceScene(fake.asRunner, {
+      projectPath: fixtureProjectPath,
+      scenePath: fixtureScenePath,
+      instancePath: 'nonexistent.tscn',
+    });
+    expectErrorMatching(result, /does not exist/i);
+  });
+
+  it('surfaces runner exceptions as a structured MCP error response', async () => {
+    const fake = createFakeRunner({ throws: new Error('boom') });
+    const result = await handleInstanceScene(fake.asRunner, {
+      projectPath: fixtureProjectPath,
+      scenePath: fixtureScenePath,
+      instancePath: fixtureScenePath, // Use valid scene file
+    });
+    expectErrorMatching(result, /boom/);
+  });
+
+  it('returns parsed result on successful runner output', async () => {
+    const fake = createFakeRunner({
+      stdout: "Scene instanced successfully as 'Player' under 'root'",
+    });
+    const result = await handleInstanceScene(fake.asRunner, {
+      projectPath: fixtureProjectPath,
+      scenePath: fixtureScenePath,
+      instancePath: fixtureScenePath, // Use valid scene file
+    });
+    expect(hasError(result)).toBe(false);
+    const text = (result as { content: Array<{ text: string }> }).content[0].text;
+    expect(text).toContain('instanced successfully');
   });
 });

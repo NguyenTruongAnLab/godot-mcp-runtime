@@ -226,6 +226,76 @@ const parameterMappings: Record<string, string> = {
   case_sensitive: 'caseSensitive',
   file_types: 'fileTypes',
   max_results: 'maxResults',
+  var_name: 'varName',
+  default_value: 'defaultValue',
+  signal_name: 'signalName',
+  func_name: 'funcName',
+  return_type: 'returnType',
+  is_static: 'isStatic',
+  action_name: 'actionName',
+  resource_path: 'resourcePath',
+  material_path: 'materialPath',
+  surface_index: 'surfaceIndex',
+  instance_path: 'instancePath',
+  player_path: 'playerPath',
+  tile_id: 'tileId',
+  flip_x: 'flipX',
+  flip_y: 'flipY',
+  anim_name: 'animName',
+  shader_path: 'shaderPath',
+  shader_code: 'shaderCode',
+  shader_type: 'shaderType',
+  meta_name: 'metaName',
+  meta_value: 'metaValue',
+  anchor_preset: 'anchorPreset',
+  min_size: 'minSize',
+  size_flags_h: 'sizeFlagsH',
+  size_flags_v: 'sizeFlagsV',
+  grow_h: 'growH',
+  grow_v: 'growV',
+  one_way_collision: 'oneWayCollision',
+  mesh_file: 'meshFile',
+  mesh_type: 'meshType',
+  mesh_properties: 'meshProperties',
+  collision_layer: 'collisionLayer',
+  collision_mask: 'collisionMask',
+  collide_with_areas: 'collideWithAreas',
+  collide_with_bodies: 'collideWithBodies',
+  target_x: 'targetX',
+  target_y: 'targetY',
+  target_z: 'targetZ',
+  light_type: 'lightType',
+  spot_angle: 'spotAngle',
+  spot_angle_attenuation: 'spotAngleAttenuation',
+  ambient_mode: 'ambientMode',
+  ambient_color: 'ambientColor',
+  ambient_energy: 'ambientEnergy',
+  sky_type: 'skyType',
+  sky_top_color: 'skyTopColor',
+  sky_horizon_color: 'skyHorizonColor',
+  ground_bottom_color: 'groundBottomColor',
+  ground_horizon_color: 'groundHorizonColor',
+  glow_enabled: 'glowEnabled',
+  ssao_enabled: 'ssaoEnabled',
+  ssr_enabled: 'ssrEnabled',
+  fog_enabled: 'fogEnabled',
+  navigation_name: 'navigationName',
+  cell_size: 'cellSize',
+  cell_height: 'cellHeight',
+  agent_height: 'agentHeight',
+  agent_radius: 'agentRadius',
+  agent_max_climb: 'agentMaxClimb',
+  agent_max_slope: 'agentMaxSlope',
+  setup_agent: 'setupAgent',
+  agent_parent_path: 'agentParentPath',
+  agent_name: 'agentName',
+  initial_velocity: 'initialVelocity',
+  anim_player_path: 'animPlayerPath',
+  auto_advance: 'autoAdvance',
+  collision_type: 'collisionType',
+  joint_type: 'jointType',
+  node_a: 'nodeA',
+  node_b: 'nodeB',
 };
 
 // Reverse mapping from camelCase to snake_case
@@ -664,7 +734,7 @@ export class GodotRunner {
       }
       logError(
         `GODOT_PATH is set to "${normalizedPath}" but no working Godot executable was found there. ` +
-        `Update GODOT_PATH to your Godot 3.x binary or unset it to auto-detect.`,
+          `Update GODOT_PATH to your Godot 3.x binary or unset it to auto-detect.`,
       );
       return;
     }
@@ -764,7 +834,7 @@ export class GodotRunner {
 
     const paramsJson = JSON.stringify(snakeCaseParams);
     const args = [
-      '--headless',
+      '--no-window',
       '--path',
       projectPath,
       '--script',
@@ -1346,8 +1416,9 @@ export class GodotRunner {
           }
           return { ready: true };
         }
-      } catch {
+      } catch (err) {
         // Expected: ping will fail until bridge is listening
+        logDebug(`Bridge poll attempt failed: ${err instanceof Error ? err.message : String(err)}`);
       }
 
       await new Promise((resolve) => setTimeout(resolve, opts.intervalMs));
