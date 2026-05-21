@@ -52,7 +52,7 @@ static func calculate(val) -> int:
 
       expect(hasError(result)).toBe(false);
       const data = JSON.parse(result.content[0].text!);
-
+      
       expect(data.signals).toHaveLength(1);
       expect(data.signals[0].name).toBe('my_signal');
       expect(data.signals[0].params).toBe('a, b');

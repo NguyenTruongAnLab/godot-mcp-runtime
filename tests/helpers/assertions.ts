@@ -3,7 +3,7 @@
  *
  * Handlers return either a normal MCP response (`{ content: [...] }`) or an
  * error envelope (`{ content: [...], isError: true }`). `hasError` is the
- * canonical predicate — prefer it over inlining the shape check.
+ * canonical predicate - prefer it over inlining the shape check.
  */
 
 import { expect } from 'vitest';
@@ -26,7 +26,7 @@ export function errorText(result: unknown): string | null {
 /**
  * Assert the handler returned an error envelope AND its rendered text matches
  * `pattern`. Use this in rejection tests so distinct branches stay
- * distinguishable — a refactor that misroutes an error path will fail loudly
+ * distinguishable - a refactor that misroutes an error path will fail loudly
  * instead of silently passing because both branches end in `isError: true`.
  */
 export function expectErrorMatching(result: unknown, pattern: RegExp): void {

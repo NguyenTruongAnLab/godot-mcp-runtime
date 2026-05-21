@@ -195,7 +195,7 @@ export type ToolHandler = (
 ) => Promise<ToolResponse> | ToolResponse;
 
 // Parameter mappings between snake_case and camelCase
-// Add new entries whenever a tool surfaces a new compound parameter — the
+// Add new entries whenever a tool surfaces a new compound parameter - the
 // strict converter throws in test env on unmapped keys to catch oversights.
 const parameterMappings: Record<string, string> = {
   project_path: 'projectPath',
@@ -296,6 +296,22 @@ const parameterMappings: Record<string, string> = {
   joint_type: 'jointType',
   node_a: 'nodeA',
   node_b: 'nodeB',
+  exclude_bodies: 'excludeBodies',
+  max_height: 'maxHeight',
+  min_height: 'minHeight',
+  tree_path: 'treePath',
+  xfade_time: 'xfadeTime',
+  capture_screenshots: 'captureScreenshots',
+  look_at: 'lookAt',
+  navigation_node_path: 'navigationNodePath',
+  albedo_color: 'albedoColor',
+  albedo_texture: 'albedoTexture',
+  metallic_texture: 'metallicTexture',
+  roughness_texture: 'roughnessTexture',
+  normal_enabled: 'normalEnabled',
+  normal_texture: 'normalTexture',
+  normal_scale: 'normalScale',
+  cull_mode: 'cullMode',
 };
 
 // Reverse mapping from camelCase to snake_case
@@ -320,7 +336,14 @@ export function normalizeParameters(params: OperationParams): OperationParams {
       }
 
       const value = params[key];
-      if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+      if (
+        typeof value === 'object' &&
+        value !== null &&
+        !Array.isArray(value) &&
+        key !== 'properties' &&
+        key !== 'parameters' &&
+        key !== 'textures'
+      ) {
         result[normalizedKey] = normalizeParameters(value as OperationParams);
       } else {
         result[normalizedKey] = value;
@@ -352,7 +375,7 @@ export function convertCamelToSnakeCase(params: OperationParams): OperationParam
       if (mapped) {
         snakeKey = mapped;
       } else if (/[A-Z]/.test(key)) {
-        // Unmapped camelCase key — tolerated in production via regex fallback,
+        // Unmapped camelCase key - tolerated in production via regex fallback,
         // but in tests we throw to catch missing entries in parameterMappings.
         if (isTestEnv) {
           throw new Error(
@@ -364,7 +387,12 @@ export function convertCamelToSnakeCase(params: OperationParams): OperationParam
       } else {
         snakeKey = key;
       }
-      result[snakeKey] = convertCamelToSnakeValue(params[key]) as OperationParams[string];
+
+      if (key === 'properties' || key === 'parameters' || key === 'textures') {
+        result[snakeKey] = params[key];
+      } else {
+        result[snakeKey] = convertCamelToSnakeValue(params[key]) as OperationParams[string];
+      }
     }
   }
 
@@ -395,7 +423,7 @@ export function validatePath(path: string): boolean {
  * basic `..`-substring check alone permits absolute-path traversal.
  *
  * Tolerates a leading `res://` (Godot's project-root URI) by stripping it
- * before resolving — autoload entries and resource paths use this prefix.
+ * before resolving - autoload entries and resource paths use this prefix.
  */
 export function validateSubPath(projectPath: string, userPath: string): boolean {
   if (!validatePath(userPath)) return false;
@@ -409,7 +437,7 @@ export function validateSubPath(projectPath: string, userPath: string): boolean 
 
 /**
  * Validate a Godot scene-tree path (NodePath). Scene-tree paths are a
- * separate namespace from filesystem paths — they address nodes inside
+ * separate namespace from filesystem paths - they address nodes inside
  * a scene, not files on disk, so the project-root containment check
  * in `validateSubPath` does not apply.
  *
@@ -610,6 +638,7 @@ export class GodotRunner {
   private rxChunks: Buffer[] = [];
   private rxTotal = 0;
   private inFlight: InFlightCommand | null = null;
+  private heartbeatTimer: NodeJS.Timeout | null = null;
 
   constructor(config?: GodotServerConfig) {
     this.operationsScriptPath = join(__dirname, '..', 'scripts', 'godot_operations.gd');
@@ -708,7 +737,7 @@ export class GodotRunner {
   }
 
   async detectGodotPath(): Promise<void> {
-    // Explicit paths (constructor config or GODOT_PATH) are authoritative — leave
+    // Explicit paths (constructor config or GODOT_PATH) are authoritative - leave
     // godotPath null on failure rather than fabricating a platform default, so
     // callers can produce actionable errors.
     if (this.godotPath) {
@@ -734,7 +763,7 @@ export class GodotRunner {
       }
       logError(
         `GODOT_PATH is set to "${normalizedPath}" but no working Godot executable was found there. ` +
-          `Update GODOT_PATH to your Godot 3.x binary or unset it to auto-detect.`,
+        `Update GODOT_PATH to your Godot 3.x binary or unset it to auto-detect.`,
       );
       return;
     }
@@ -789,7 +818,7 @@ export class GodotRunner {
   /**
    * Read the port currently baked into the project's bridge script. Returns
    * null if the file is missing or malformed. Thin pass-through to
-   * BridgeManager — used by bridge-wait-timeout race detection.
+   * BridgeManager - used by bridge-wait-timeout race detection.
    */
   readBakedBridgePort(projectPath: string): number | null {
     return this.bridge.readBakedPort(projectPath);
@@ -865,7 +894,7 @@ export class GodotRunner {
     const operationRan = stdout.trim().length > 0 || stderr.includes('[INFO] Operation:');
     if (!operationRan && (stderr.includes('ERROR:') || stderr.includes('SCRIPT ERROR:'))) {
       throw new Error(
-        `Headless Godot failed before the operation could run — likely an autoload initialization error.\n` +
+        `Headless Godot failed before the operation could run - likely an autoload initialization error.\n` +
           `Stderr:\n${stderr.trim()}\n\n` +
           `Use list_autoloads and remove_autoload to inspect or remove the failing autoload, then retry.`,
       );
@@ -1006,7 +1035,7 @@ export class GodotRunner {
       this.activeProjectPath &&
       this.activeProjectPath !== projectPath
     ) {
-      // Different project — detach the old one cleanly so its bridge
+      // Different project - detach the old one cleanly so its bridge
       // releases the port before we inject into the new project.
       try {
         await this.sendCommand('shutdown', {}, BRIDGE_SHUTDOWN_ATTACHED_TIMEOUT_MS);
@@ -1036,7 +1065,7 @@ export class GodotRunner {
 
     if (this.activeSessionMode === 'attached') {
       // Ask the bridge to shut down so the user's still-running Godot
-      // releases the port. A timeout here is non-fatal — same end state
+      // releases the port. A timeout here is non-fatal - same end state
       // as today, the bridge dies when the user closes Godot.
       try {
         await this.sendCommand('shutdown', {}, BRIDGE_SHUTDOWN_ATTACHED_TIMEOUT_MS);
@@ -1069,7 +1098,7 @@ export class GodotRunner {
     try {
       await this.sendCommand('shutdown', {}, BRIDGE_SHUTDOWN_SPAWNED_TIMEOUT_MS);
     } catch {
-      // Bridge may already be unreachable — proceed to kill.
+      // Bridge may already be unreachable - proceed to kill.
     }
     this.closeConnection();
 
@@ -1129,7 +1158,7 @@ export class GodotRunner {
    * socket is lazy-connected on first call and persists across commands until
    * `closeConnection` (or a peer-side close). A close mid-flight rejects with
    * `BridgeDisconnectedError`; a per-command timeout rejects but does NOT
-   * close the socket — a slow command does not invalidate the session.
+   * close the socket - a slow command does not invalidate the session.
    */
   sendCommand(
     command: string,
@@ -1182,89 +1211,107 @@ export class GodotRunner {
           cb();
           return;
         }
-        // Fallback to DEFAULT_BRIDGE_PORT is defensive — every entry point
-        // (runProject, attachProject) sets activeBridgePort before sendCommand
-        // can be reached, so this branch is not expected in practice.
-        const port = this.activeBridgePort ?? DEFAULT_BRIDGE_PORT;
-        const sock = net.connect(port, '127.0.0.1');
-        const onConnect = (): void => {
-          sock.setNoDelay(true);
-          sock.removeListener('error', onConnectError);
-          this.socket = sock;
-          this.resetRxBuffer();
+        const basePort = this.activeBridgePort ?? DEFAULT_BRIDGE_PORT;
+        let attempt = 0;
+        const maxAttempts = 5;
 
-          sock.on('data', (chunk: Buffer) => {
-            this.rxChunks.push(chunk);
-            this.rxTotal += chunk.length;
+        const tryConnect = (portToTry: number) => {
+          logDebug(`Self-healing connect attempt to 127.0.0.1:${portToTry}`);
+          const sock = net.connect(portToTry, '127.0.0.1');
 
-            // Defer the (potentially expensive) concat until we know at least
-            // one complete frame is ready. Peek the 4-byte header without
-            // copying all accumulated chunks first.
-            if (this.rxTotal < FRAME_HEADER_BYTES) return;
-            const header = readBytesFromChunks(this.rxChunks, FRAME_HEADER_BYTES);
-            const firstLen = header.readUInt32BE(0);
-            if (firstLen > MAX_FRAME_BYTES) {
+          const onConnectError = (connErr: Error): void => {
+            sock.destroy();
+            attempt++;
+            if (attempt < maxAttempts) {
+              const nextPort = basePort + attempt;
+              logDebug(`Connect to port ${portToTry} failed (${connErr.message}). Retrying on port ${nextPort}...`);
+              tryConnect(nextPort);
+            } else {
+              cb(connErr);
+            }
+          };
+
+          const onConnect = (): void => {
+            sock.setNoDelay(true);
+            sock.removeListener('error', onConnectError);
+            this.socket = sock;
+            this.activeBridgePort = portToTry;
+            this.resetRxBuffer();
+            this.startHeartbeat();
+
+            sock.on('data', (chunk: Buffer) => {
+              this.rxChunks.push(chunk);
+              this.rxTotal += chunk.length;
+
+              if (this.rxTotal < FRAME_HEADER_BYTES) return;
+              const header = readBytesFromChunks(this.rxChunks, FRAME_HEADER_BYTES);
+              const firstLen = header.readUInt32BE(0);
+              if (firstLen > MAX_FRAME_BYTES) {
+                this.socket = null;
+                sock.destroy();
+                this.stopHeartbeat();
+                settle(
+                  new BridgeDisconnectedError(
+                    `Bridge frame header advertises ${firstLen} bytes, exceeds limit ${MAX_FRAME_BYTES}`,
+                  ),
+                );
+                return;
+              }
+              if (this.rxTotal < FRAME_HEADER_BYTES + firstLen) return;
+
+              try {
+                const buffer =
+                  this.rxChunks.length === 1
+                    ? this.rxChunks[0]
+                    : Buffer.concat(this.rxChunks, this.rxTotal);
+                const { frames, remainder } = parseFrames(buffer);
+                if (remainder.length === 0) {
+                  this.rxChunks = [];
+                  this.rxTotal = 0;
+                } else {
+                  this.rxChunks = [remainder];
+                  this.rxTotal = remainder.length;
+                }
+                for (const frame of frames) {
+                  settle(null, frame.toString('utf8'));
+                }
+              } catch (parseErr) {
+                const message = parseErr instanceof Error ? parseErr.message : String(parseErr);
+                this.socket = null;
+                sock.destroy();
+                this.stopHeartbeat();
+                settle(new BridgeDisconnectedError(`Bridge framing error: ${message}`));
+              }
+            });
+
+            const onClose = (): void => {
               this.socket = null;
-              sock.destroy();
+              this.stopHeartbeat();
               settle(
                 new BridgeDisconnectedError(
-                  `Bridge frame header advertises ${firstLen} bytes, exceeds limit ${MAX_FRAME_BYTES}`,
+                  `Bridge connection closed before '${command}' response was received`,
                 ),
               );
-              return;
-            }
-            if (this.rxTotal < FRAME_HEADER_BYTES + firstLen) return;
-
-            try {
-              const buffer =
-                this.rxChunks.length === 1
-                  ? this.rxChunks[0]
-                  : Buffer.concat(this.rxChunks, this.rxTotal);
-              const { frames, remainder } = parseFrames(buffer);
-              if (remainder.length === 0) {
-                this.rxChunks = [];
-                this.rxTotal = 0;
-              } else {
-                this.rxChunks = [remainder];
-                this.rxTotal = remainder.length;
-              }
-              for (const frame of frames) {
-                settle(null, frame.toString('utf8'));
-              }
-            } catch (parseErr) {
-              const message = parseErr instanceof Error ? parseErr.message : String(parseErr);
+            };
+            sock.once('close', onClose);
+            sock.on('error', (sockErr: Error) => {
               this.socket = null;
-              sock.destroy();
-              settle(new BridgeDisconnectedError(`Bridge framing error: ${message}`));
-            }
-          });
+              this.stopHeartbeat();
+              settle(
+                new BridgeDisconnectedError(
+                  `Bridge socket error during '${command}': ${sockErr.message}`,
+                ),
+              );
+            });
 
-          const onClose = (): void => {
-            this.socket = null;
-            settle(
-              new BridgeDisconnectedError(
-                `Bridge connection closed before '${command}' response was received`,
-              ),
-            );
+            cb();
           };
-          sock.once('close', onClose);
-          sock.on('error', (sockErr: Error) => {
-            this.socket = null;
-            settle(
-              new BridgeDisconnectedError(
-                `Bridge socket error during '${command}': ${sockErr.message}`,
-              ),
-            );
-          });
 
-          cb();
+          sock.once('connect', onConnect);
+          sock.once('error', onConnectError);
         };
-        const onConnectError = (connErr: Error): void => {
-          sock.destroy();
-          cb(connErr);
-        };
-        sock.once('connect', onConnect);
-        sock.once('error', onConnectError);
+
+        tryConnect(basePort);
       };
 
       ensureSocket((err) => {
@@ -1295,7 +1342,31 @@ export class GodotRunner {
    * Tear down the bridge socket. Idempotent. Any in-flight command is
    * rejected with a session-ended error.
    */
+  private startHeartbeat(): void {
+    this.stopHeartbeat();
+    this.heartbeatTimer = setInterval(async () => {
+      if (!this.socket || this.inFlight) return;
+      try {
+        await this.sendCommand('ping', {}, 2000);
+      } catch (err) {
+        logDebug(`Heartbeat ping failed: ${err instanceof Error ? err.message : String(err)}`);
+        this.closeConnection();
+      }
+    }, 5000);
+    if (this.heartbeatTimer && typeof this.heartbeatTimer.unref === 'function') {
+      this.heartbeatTimer.unref();
+    }
+  }
+
+  private stopHeartbeat(): void {
+    if (this.heartbeatTimer) {
+      clearInterval(this.heartbeatTimer);
+      this.heartbeatTimer = null;
+    }
+  }
+
   closeConnection(): void {
+    this.stopHeartbeat();
     if (this.inFlight) {
       const flight = this.inFlight;
       this.inFlight = null;
@@ -1329,7 +1400,7 @@ export class GodotRunner {
     return window.filter((line) => line.trim() !== '');
   }
 
-  // Only the explicit `SCRIPT ERROR:` / `USER SCRIPT ERROR:` markers belong here — the looser
+  // Only the explicit `SCRIPT ERROR:` / `USER SCRIPT ERROR:` markers belong here - the looser
   // `GDScript error` substring also matches user printerr output and produces false positives.
   private static readonly SCRIPT_ERROR_PATTERNS = ['SCRIPT ERROR:', 'USER SCRIPT ERROR:'];
   private static readonly RETRYABLE_BRIDGE_COMMANDS = new Set(['get_ui_elements', 'screenshot']);
@@ -1436,7 +1507,7 @@ export class GodotRunner {
       timeoutMs,
       intervalMs,
       timeoutError:
-        'Bridge did not respond within timeout — is Godot running with the McpBridge autoload?',
+        'Bridge did not respond within timeout - is Godot running with the McpBridge autoload?',
       pingPayload: {},
       validatePong: (parsed) => parsed.status === 'pong',
     });

@@ -6,7 +6,7 @@ extends Node
 # Wire format: 4-byte big-endian length prefix + UTF-8 JSON payload.
 # Max frame size 16 MiB; oversize frames close the offending peer.
 
-# Port is baked into this script at inject time by BridgeManager.inject — the
+# Port is baked into this script at inject time by BridgeManager.inject - the
 # integer literal below is rewritten in the project copy. The 9900 here is the
 # source-of-truth default that ships with the script so it remains runnable
 # standalone (e.g. validate, manual debugging).
@@ -41,6 +41,11 @@ func _ready() -> void:
 		OS.window_borderless = true
 		OS.window_position = Vector2(-9999, -9999)
 		OS.set_window_always_on_top(true)
+		# Disable input accumulation so Input.parse_input_event() processes
+		# each injected event immediately. Without this, background-mode
+		# key/mouse injection via simulate_input may be dropped because the
+		# OS does not deliver focus events to offscreen windows.
+		Input.set_use_accumulated_input(false)
 		print("McpBridge: Background mode active - window hidden off-screen")
 
 func _process(_delta: float) -> void:
@@ -132,7 +137,7 @@ func _poll_peer(peer: PeerState) -> void:
 # eventually reach `_send_response`. `peer.handling` is set to true by the
 # caller (`_poll_peer`) before dispatch and cleared inside `_send_response`.
 # A handler that exits without calling `_send_response` will deadlock the
-# peer — the next frame will never be polled. When adding a new branch,
+# peer - the next frame will never be polled. When adding a new branch,
 # ensure the early-exit calls `_send_response` with an error payload.
 func _dispatch_command(peer: PeerState, data: String) -> void:
 	print("McpBridge: Dispatching command data: ", data)
@@ -179,8 +184,59 @@ func _dispatch_command(peer: PeerState, data: String) -> void:
 				yield(shutdown_state, "completed")
 		"ping":
 			_send_response(peer, {"status": "pong", "session_token": session_token, "project_path": ProjectSettings.globalize_path("res://")})
+		"performance_metrics":
+			_handle_performance_metrics(peer)
+		"query_spatial_collision":
+			_handle_query_spatial_collision(peer, payload)
+		"get_ground_clamp":
+			_handle_get_ground_clamp(peer, payload)
+		"record_telemetry_sequence":
+			var telem_state = _handle_record_telemetry_sequence(peer, payload)
+			if telem_state is GDScriptFunctionState:
+				yield(telem_state, "completed")
+		"navigate_to":
+			var nav_state = _handle_navigate_to(peer, payload)
+			if nav_state is GDScriptFunctionState:
+				yield(nav_state, "completed")
 		_:
 			_send_response(peer, {"error": "Unknown command: %s" % command})
+
+# --- Performance Metrics ---
+
+func _handle_performance_metrics(peer: PeerState) -> void:
+	# Read all Godot 3.x Performance monitor values
+	# See: https://docs.godotengine.org/en/3.6/classes/class_performance.html
+	var metrics = {
+		"fps": Performance.get_monitor(Performance.TIME_FPS),
+		"process_time_ms": Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0,
+		"physics_process_time_ms": Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS) * 1000.0,
+		"memory_static_bytes": Performance.get_monitor(Performance.MEMORY_STATIC),
+		"memory_dynamic_bytes": Performance.get_monitor(Performance.MEMORY_DYNAMIC),
+		"memory_static_max_bytes": Performance.get_monitor(Performance.MEMORY_STATIC_MAX),
+		"memory_dynamic_max_bytes": Performance.get_monitor(Performance.MEMORY_DYNAMIC_MAX),
+		"memory_message_buffer_max_bytes": Performance.get_monitor(Performance.MEMORY_MESSAGE_BUFFER_MAX),
+		"objects_count": Performance.get_monitor(Performance.OBJECT_COUNT),
+		"resources_count": Performance.get_monitor(Performance.OBJECT_RESOURCE_COUNT),
+		"nodes_count": Performance.get_monitor(Performance.OBJECT_NODE_COUNT),
+		"orphan_nodes_count": Performance.get_monitor(Performance.OBJECT_ORPHAN_NODE_COUNT),
+		"render_objects_in_frame": Performance.get_monitor(Performance.RENDER_OBJECTS_IN_FRAME),
+		"render_vertices_in_frame": Performance.get_monitor(Performance.RENDER_VERTICES_IN_FRAME),
+		"render_material_changes": Performance.get_monitor(Performance.RENDER_MATERIAL_CHANGES_IN_FRAME),
+		"render_shader_changes": Performance.get_monitor(Performance.RENDER_SHADER_CHANGES_IN_FRAME),
+		"render_surface_changes": Performance.get_monitor(Performance.RENDER_SURFACE_CHANGES_IN_FRAME),
+		"render_draw_calls": Performance.get_monitor(Performance.RENDER_DRAW_CALLS_IN_FRAME),
+		"render_video_mem_used_bytes": Performance.get_monitor(Performance.RENDER_VIDEO_MEM_USED),
+		"render_texture_mem_used_bytes": Performance.get_monitor(Performance.RENDER_TEXTURE_MEM_USED),
+		"render_vertex_mem_used_bytes": Performance.get_monitor(Performance.RENDER_VERTEX_MEM_USED),
+		"render_usage_video_mem_total": Performance.get_monitor(Performance.RENDER_USAGE_VIDEO_MEM_TOTAL),
+		"physics_2d_active_objects": Performance.get_monitor(Performance.PHYSICS_2D_ACTIVE_OBJECTS),
+		"physics_2d_collision_pairs": Performance.get_monitor(Performance.PHYSICS_2D_COLLISION_PAIRS),
+		"physics_2d_island_count": Performance.get_monitor(Performance.PHYSICS_2D_ISLAND_COUNT),
+		"physics_3d_active_objects": Performance.get_monitor(Performance.PHYSICS_3D_ACTIVE_OBJECTS),
+		"physics_3d_collision_pairs": Performance.get_monitor(Performance.PHYSICS_3D_COLLISION_PAIRS),
+		"physics_3d_island_count": Performance.get_monitor(Performance.PHYSICS_3D_ISLAND_COUNT),
+	}
+	_send_response(peer, metrics)
 
 # --- Screenshot ---
 
@@ -231,7 +287,7 @@ func _handle_screenshot(peer: PeerState, payload: Dictionary = {}) -> void:
 		)
 		var preview_width = max(1, int(floor(float(image.get_width()) * scale)))
 		var preview_height = max(1, int(floor(float(image.get_height()) * scale)))
-		# Full image already saved to disk — resize in-place to avoid a redundant copy
+		# Full image already saved to disk - resize in-place to avoid a redundant copy
 		image.resize(preview_width, preview_height, Image.INTERPOLATE_CUBIC)
 		var preview_path = screenshot_dir.plus_file("screenshot_%s_preview.png" % timestamp)
 		var preview_err = image.save_png(preview_path)
@@ -304,6 +360,15 @@ func _handle_input(peer: PeerState, actions: Array) -> void:
 	else:
 		_send_response(peer, {"success": true, "actions_processed": processed})
 
+func _trigger_actions_for_scancode(scancode, pressed):
+	for action in InputMap.get_actions():
+		for event in InputMap.get_action_list(action):
+			if event is InputEventKey and event.scancode == scancode:
+				if pressed:
+					Input.action_press(action)
+				else:
+					Input.action_release(action)
+
 func _inject_key(action: Dictionary) -> String:
 	var key_name = action.get("key", "")
 	if key_name == "":
@@ -322,7 +387,7 @@ func _inject_key(action: Dictionary) -> String:
 	event.control = action.get("ctrl", false)
 	event.alt = action.get("alt", false)
 	# Text-entry Controls (LineEdit, TextEdit) consume `event.unicode`, not just
-	# the scancode — without it, typing into a focused LineEdit produces nothing.
+	# the scancode - without it, typing into a focused LineEdit produces nothing.
 	# Auto-derive for ASCII letters and digits; fall back to caller-supplied
 	# `unicode` for symbols and non-ASCII.
 	if action.has("unicode"):
@@ -332,6 +397,10 @@ func _inject_key(action: Dictionary) -> String:
 	elif scancode >= KEY_0 and scancode <= KEY_9:
 		event.unicode = scancode
 	Input.parse_input_event(event)
+
+	if OS.get_environment("MCP_BACKGROUND") == "1":
+		_trigger_actions_for_scancode(scancode, event.pressed)
+
 	return ""
 
 func _resolve_button_name(button_name: String) -> Array:
@@ -437,6 +506,14 @@ func _inject_click_element(action: Dictionary) -> String:
 	release.position = center
 	release.global_position = center
 	Input.parse_input_event(release)
+
+	# Direct programmatic click fallback when in background mode
+	if OS.get_environment("MCP_BACKGROUND") == "1":
+		if target.has_method("_gui_input"):
+			target._gui_input(press)
+			target._gui_input(release)
+		if target is BaseButton and not target.disabled:
+			target.emit_signal("pressed")
 
 	return ""
 
@@ -650,9 +727,349 @@ func _close_all_peers() -> void:
 
 func _exit_tree() -> void:
 	if not _shutting_down:
-		push_warning("McpBridge: removed from tree without shutdown — bridge connection will be lost")
+		push_warning("McpBridge: removed from tree without shutdown - bridge connection will be lost")
 	_close_all_peers()
 	if tcp_server != null:
 		tcp_server.stop()
 		tcp_server = null
 		print("McpBridge: Stopped")
+
+# --- Spatial Collision & Ground Raycasting Tools ---
+
+func _get_space_state():
+	var vp = get_viewport()
+	if vp and vp.has_method("find_world"):
+		var world = vp.find_world()
+		if world:
+			return world.direct_space_state
+	var spatial = _find_spatial(get_tree().root)
+	if spatial:
+		var world = spatial.get_world()
+		if world:
+			return world.direct_space_state
+	return null
+
+func _find_spatial(node: Node):
+	if node is Spatial:
+		return node
+	for i in range(node.get_child_count()):
+		var found = _find_spatial(node.get_child(i))
+		if found:
+			return found
+	return null
+
+func _find_node_by_name(root: Node, name: String) -> Node:
+	if String(root.name) == name:
+		return root
+	for i in range(root.get_child_count()):
+		var found = _find_node_by_name(root.get_child(i), name)
+		if found:
+			return found
+	return null
+
+func _handle_query_spatial_collision(peer: PeerState, payload: Dictionary) -> void:
+	var space_state = _get_space_state()
+	if space_state == null:
+		_send_response(peer, {"error": "No 3D physics space state found"})
+		return
+
+	var origin_data = payload.get("origin")
+	var dest_data = payload.get("destination")
+	if not origin_data or not dest_data:
+		_send_response(peer, {"error": "origin and destination are required"})
+		return
+
+	var origin = Vector3(float(origin_data.get("x", 0.0)), float(origin_data.get("y", 0.0)), float(origin_data.get("z", 0.0)))
+	var dest = Vector3(float(dest_data.get("x", 0.0)), float(dest_data.get("y", 0.0)), float(dest_data.get("z", 0.0)))
+	var collision_mask = int(payload.get("collision_mask", 1))
+
+	var exclude = []
+	var exclude_paths = payload.get("exclude_bodies", [])
+	for path in exclude_paths:
+		var node = get_tree().root.get_node_or_null(NodePath(path))
+		if not node:
+			node = _find_node_by_name(get_tree().root, path)
+		if node:
+			exclude.append(node)
+
+	var hit = space_state.intersect_ray(origin, dest, exclude, collision_mask, true, false)
+	if hit.empty():
+		_send_response(peer, {"collided": false})
+	else:
+		var col_node = hit.get("collider")
+		var col_name = ""
+		var col_path = ""
+		if col_node:
+			col_name = String(col_node.name)
+			col_path = String(col_node.get_path())
+		
+		var normal = hit.get("normal")
+		var position = hit.get("position")
+		_send_response(peer, {
+			"collided": true,
+			"position": {"x": position.x, "y": position.y, "z": position.z},
+			"normal": {"x": normal.x, "y": normal.y, "z": normal.z},
+			"collider_name": col_name,
+			"collider_path": col_path,
+			"collider_id": int(hit.get("collider_id", 0))
+		})
+
+func _handle_get_ground_clamp(peer: PeerState, payload: Dictionary) -> void:
+	var space_state = _get_space_state()
+	if space_state == null:
+		_send_response(peer, {"error": "No 3D physics space state found"})
+		return
+
+	var pos_data = payload.get("position")
+	if not pos_data:
+		_send_response(peer, {"error": "position is required"})
+		return
+
+	var px = float(pos_data.get("x", 0.0))
+	var pz = float(pos_data.get("z", pos_data.get("y", 0.0)))
+	
+	var max_height = float(payload.get("max_height", 100.0))
+	var min_height = float(payload.get("min_height", -100.0))
+	var collision_mask = int(payload.get("collision_mask", 1))
+
+	var origin = Vector3(px, max_height, pz)
+	var dest = Vector3(px, min_height, pz)
+
+	var hit = space_state.intersect_ray(origin, dest, [], collision_mask, true, false)
+	if hit.empty():
+		_send_response(peer, {"collided": false})
+	else:
+		var col_node = hit.get("collider")
+		var col_name = ""
+		var col_path = ""
+		if col_node:
+			col_name = String(col_node.name)
+			col_path = String(col_node.get_path())
+		
+		var normal = hit.get("normal")
+		var position = hit.get("position")
+		_send_response(peer, {
+			"collided": true,
+			"ground_height": position.y,
+			"position": {"x": position.x, "y": position.y, "z": position.z},
+			"normal": {"x": normal.x, "y": normal.y, "z": normal.z},
+			"collider_name": col_name,
+			"collider_path": col_path
+		})
+
+func _handle_record_telemetry_sequence(peer: PeerState, payload: Dictionary) -> void:
+	var target_path = payload.get("target_node_path", "")
+	if target_path == "":
+		_send_response(peer, {"error": "target_node_path is required"})
+		return
+
+	var duration = float(payload.get("duration", 2.0))
+	var interval = float(payload.get("interval", 0.2))
+	var capture_screenshots = bool(payload.get("capture_screenshots", false))
+
+	var node = get_tree().root.get_node_or_null(NodePath(target_path))
+	if not node:
+		node = _find_node_by_name(get_tree().root, target_path)
+	if not node:
+		_send_response(peer, {"error": "Node not found: %s" % target_path})
+		return
+
+	var is_spatial = node is Spatial
+	var is_node2d = node is Node2D
+
+	var samples = []
+	var elapsed = 0.0
+	var timestamp_str := str(OS.get_unix_time()).replace(".", "_")
+
+	var telemetry_dir := ProjectSettings.globalize_path("res://.mcp/telemetry")
+	var screenshot_dir := telemetry_dir.plus_file("screenshots")
+	var dir = Directory.new()
+	var dir_err = dir.make_dir_recursive(screenshot_dir)
+	if dir_err != OK:
+		_send_response(peer, {"error": "Failed to create telemetry directories (error %d)" % dir_err})
+		return
+
+	var steps = int(max(1, ceil(duration / interval)))
+	for step in range(steps):
+		if not is_instance_valid(node):
+			break
+
+		var sample = {
+			"elapsed_time": elapsed,
+			"timestamp": OS.get_unix_time()
+		}
+
+		if is_spatial:
+			var s_node = node as Spatial
+			var pos = s_node.global_transform.origin
+			var rot = s_node.global_transform.basis.get_euler()
+			var scale = s_node.global_transform.basis.get_scale()
+			sample["position"] = {"x": pos.x, "y": pos.y, "z": pos.z}
+			sample["rotation"] = {"x": rot.x, "y": rot.y, "z": rot.z}
+			sample["scale"] = {"x": scale.x, "y": scale.y, "z": scale.z}
+			if s_node.has_method("get_linear_velocity"):
+				var lv = s_node.call("get_linear_velocity")
+				sample["linear_velocity"] = {"x": lv.x, "y": lv.y, "z": lv.z}
+			if s_node.has_method("get_angular_velocity"):
+				var av = s_node.call("get_angular_velocity")
+				sample["angular_velocity"] = {"x": av.x, "y": av.y, "z": av.z}
+		elif is_node2d:
+			var n2d_node = node as Node2D
+			var pos = n2d_node.global_position
+			var rot = n2d_node.global_rotation
+			var scale = n2d_node.global_scale
+			sample["position"] = {"x": pos.x, "y": pos.y}
+			sample["rotation"] = rot
+			sample["scale"] = {"x": scale.x, "y": scale.y}
+			if n2d_node.has_method("get_linear_velocity"):
+				var lv = n2d_node.call("get_linear_velocity")
+				sample["linear_velocity"] = {"x": lv.x, "y": lv.y}
+			if n2d_node.has_method("get_angular_velocity"):
+				sample["angular_velocity"] = n2d_node.call("get_angular_velocity")
+
+		if capture_screenshots:
+			yield(VisualServer, "frame_post_draw")
+			var viewport := get_viewport()
+			if viewport:
+				var image := viewport.get_texture().get_data()
+				if image:
+					image.flip_y()
+					var shot_name = "shot_%s_step_%d.png" % [timestamp_str, step]
+					var shot_path = screenshot_dir.plus_file(shot_name)
+					var save_err = image.save_png(shot_path)
+					if save_err == OK:
+						sample["screenshot"] = shot_path.replace("\\", "/")
+
+		samples.append(sample)
+		elapsed += interval
+		yield(get_tree().create_timer(interval), "timeout")
+
+	var response_data = {
+		"node_path": String(node.get_path()),
+		"node_name": String(node.name),
+		"samples": samples
+	}
+
+	# Save sequence as JSON file
+	var file_name = "telemetry_%s.json" % timestamp_str
+	var file_path = telemetry_dir.plus_file(file_name)
+	var file = File.new()
+	var open_err = file.open(file_path, File.WRITE)
+	if open_err == OK:
+		file.store_string(JSON.print(response_data, "  "))
+		file.close()
+		response_data["saved_file_path"] = file_path.replace("\\", "/")
+
+	_send_response(peer, response_data)
+
+func _find_navigation_node(root: Node) -> Node:
+	if root is Navigation:
+		return root
+	if root.get_class() == "Navigation" or root.get_class() == "Navigation3D":
+		return root
+	for i in range(root.get_child_count()):
+		var found = _find_navigation_node(root.get_child(i))
+		if found:
+			return found
+	return null
+
+func _handle_navigate_to(peer: PeerState, payload: Dictionary) -> void:
+	var target_path = payload.get("target_node_path", "")
+	if target_path == "":
+		_send_response(peer, {"error": "target_node_path is required"})
+		return
+
+	var node = get_tree().root.get_node_or_null(NodePath(target_path))
+	if not node:
+		node = _find_node_by_name(get_tree().root, target_path)
+	if not node:
+		_send_response(peer, {"error": "Target node not found: %s" % target_path})
+		return
+
+	if not (node is Spatial):
+		_send_response(peer, {"error": "Target node is not a Spatial (3D) node"})
+		return
+
+	var s_node = node as Spatial
+	var dest_data = payload.get("destination")
+	if not dest_data:
+		_send_response(peer, {"error": "destination is required"})
+		return
+
+	var dest = Vector3(float(dest_data.get("x", 0.0)), float(dest_data.get("y", 0.0)), float(dest_data.get("z", 0.0)))
+	var speed = float(payload.get("speed", 5.0))
+	var tolerance = float(payload.get("tolerance", 1.0))
+	var timeout = float(payload.get("timeout", 10.0))
+
+	var nav_node: Node = null
+	var nav_path = payload.get("navigation_node_path", "")
+	if nav_path != "":
+		nav_node = get_tree().root.get_node_or_null(NodePath(nav_path))
+		if not nav_node:
+			nav_node = _find_node_by_name(get_tree().root, nav_path)
+	if not nav_node:
+		nav_node = _find_navigation_node(get_tree().root)
+
+	var path := PoolVector3Array()
+	var path_computed = false
+	if nav_node and nav_node.has_method("get_simple_path"):
+		path = nav_node.get_simple_path(s_node.global_transform.origin, dest, true)
+		if path.size() > 0:
+			path_computed = true
+
+	if not path_computed or path.size() == 0:
+		path = PoolVector3Array([dest])
+
+	var current_point_idx = 0
+	var elapsed = 0.0
+	var initial_pos = s_node.global_transform.origin
+	var final_pos = initial_pos
+
+	while current_point_idx < path.size():
+		var target_point = path[current_point_idx]
+		yield(get_tree(), "physics_frame")
+		var dt = get_physics_process_delta_time()
+		if dt <= 0.0:
+			dt = 0.016
+		elapsed += dt
+
+		if elapsed >= timeout:
+			break
+
+		if not is_instance_valid(s_node):
+			_send_response(peer, {"error": "Target node was destroyed during movement"})
+			return
+
+		var current_pos = s_node.global_transform.origin
+		var to_target = target_point - current_pos
+		var dist = to_target.length()
+
+		if dist <= tolerance:
+			current_point_idx += 1
+			continue
+
+		var dir = to_target.normalized()
+		var move_step = dir * speed * dt
+
+		if s_node.has_method("move_and_slide"):
+			s_node.call("move_and_slide", dir * speed)
+		elif s_node.has_method("set_linear_velocity"):
+			s_node.call("set_linear_velocity", dir * speed)
+		else:
+			if move_step.length() >= dist:
+				s_node.global_transform.origin = target_point
+				current_point_idx += 1
+			else:
+				s_node.global_transform.origin += move_step
+
+	final_pos = s_node.global_transform.origin if is_instance_valid(s_node) else dest
+	var response = {
+		"success": current_point_idx >= path.size(),
+		"initial_position": {"x": initial_pos.x, "y": initial_pos.y, "z": initial_pos.z},
+		"final_position": {"x": final_pos.x, "y": final_pos.y, "z": final_pos.z},
+		"elapsed_time": elapsed,
+		"path_points_count": path.size(),
+		"path_computed": path_computed,
+		"timeout_reached": elapsed >= timeout
+	}
+	_send_response(peer, response)

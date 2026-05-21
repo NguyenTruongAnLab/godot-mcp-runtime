@@ -40,7 +40,7 @@ export const runtimeToolDefinitions: ToolDefinition[] = [
   {
     name: 'launch_editor',
     description:
-      'Open the Godot editor GUI for a project for the human user. Use only when the user explicitly asks to "open the editor"; for any agent-driven work, use the headless scene/node tools (add_node, set_node_properties, etc.) instead — the editor cannot be controlled programmatically. Returns plain-text confirmation after spawning the editor process. Errors if projectPath has no project.godot.',
+      'Open the Godot editor GUI for a project for the human user. Use only when the user explicitly asks to "open the editor"; for any agent-driven work, use the headless scene/node tools (add_node, set_node_properties, etc.) instead - the editor cannot be controlled programmatically. Returns plain-text confirmation after spawning the editor process. Errors if projectPath has no project.godot.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -88,7 +88,7 @@ export const runtimeToolDefinitions: ToolDefinition[] = [
   {
     name: 'attach_project',
     description:
-      'Inject the MCP bridge into a Godot process you launch yourself, then wait up to 15s for the bridge to respond. Call BEFORE Godot launches — Godot reads autoloads only at process start, so a late call returns "bridge did not respond." Recommended pattern: kick off the Godot launch in parallel with this call so the wait absorbs startup. Prefer run_project unless MCP must not spawn Godot. Returns plain-text status with the resolved bridge port. Call detach_project or stop_project when done.',
+      'Inject the MCP bridge into a Godot process you launch yourself, then wait up to 15s for the bridge to respond. Call BEFORE Godot launches - Godot reads autoloads only at process start, so a late call returns "bridge did not respond." Recommended pattern: kick off the Godot launch in parallel with this call so the wait absorbs startup. Prefer run_project unless MCP must not spawn Godot. Returns plain-text status with the resolved bridge port. Call detach_project or stop_project when done.',
     annotations: { destructiveHint: true },
     inputSchema: {
       type: 'object',
@@ -111,7 +111,7 @@ export const runtimeToolDefinitions: ToolDefinition[] = [
   {
     name: 'detach_project',
     description:
-      'Clear attached-mode runtime state and remove the injected McpBridge autoload. Does NOT stop the manually launched Godot process — that stays running. Use after attach_project when you are done driving the game from MCP. For spawned sessions (run_project), use stop_project instead. Returns: message confirming detach plus externalProcessPreserved (always true here — that is the point of detach vs stop_project). Errors if called outside an attached session.',
+      'Clear attached-mode runtime state and remove the injected McpBridge autoload. Does NOT stop the manually launched Godot process - that stays running. Use after attach_project when you are done driving the game from MCP. For spawned sessions (run_project), use stop_project instead. Returns: message confirming detach plus externalProcessPreserved (always true here - that is the point of detach vs stop_project). Errors if called outside an attached session.',
     annotations: { destructiveHint: true },
     inputSchema: {
       type: 'object',
@@ -129,7 +129,7 @@ export const runtimeToolDefinitions: ToolDefinition[] = [
   {
     name: 'get_debug_output',
     description:
-      'Get captured stdout/stderr from a spawned Godot project. Use whenever runtime tools fail unexpectedly — script errors, missing nodes, and crash backtraces all surface here. Requires run_project (not attach_project; attached mode does not capture output). Returns: output/errors (last `limit` lines each, default 200), running (false after exit, null when attached), exitCode after exit, attached:true with empty arrays in attached mode.',
+      'Get captured stdout/stderr from a spawned Godot project. Use whenever runtime tools fail unexpectedly - script errors, missing nodes, and crash backtraces all surface here. Requires run_project (not attach_project; attached mode does not capture output). Returns: output/errors (last `limit` lines each, default 200), running (false after exit, null when attached), exitCode after exit, attached:true with empty arrays in attached mode.',
     annotations: { readOnlyHint: true },
     inputSchema: {
       type: 'object',
@@ -156,7 +156,7 @@ export const runtimeToolDefinitions: ToolDefinition[] = [
   {
     name: 'stop_project',
     description:
-      'Stop the spawned Godot project and clean up MCP bridge state. Always call when done with runtime testing — even after a crash — to free the single process slot so run_project can be called again. For attached sessions, this detaches without killing the externally launched process. Returns: message, mode ("spawned"/"attached"), externalProcessPreserved (true only for attached), finalOutput and finalErrors (last 200 lines each). Errors if no session is active.',
+      'Stop the spawned Godot project and clean up MCP bridge state. Always call when done with runtime testing - even after a crash - to free the single process slot so run_project can be called again. For attached sessions, this detaches without killing the externally launched process. Returns: message, mode ("spawned"/"attached"), externalProcessPreserved (true only for attached), finalOutput and finalErrors (last 200 lines each). Errors if no session is active.',
     annotations: { destructiveHint: true },
     inputSchema: {
       type: 'object',
@@ -177,7 +177,7 @@ export const runtimeToolDefinitions: ToolDefinition[] = [
   {
     name: 'take_screenshot',
     description:
-      'Capture a PNG of the running viewport. responseMode: preview (default — saves full PNG, returns bounded inline preview at 960x540), full (full inline PNG; use for small text or pixel-level inspection), path_only (saved-path only, no inline image). Saved under .mcp/screenshots. Returns: inline image block (full/preview modes), plus path and size of the saved PNG; previewPath/previewSize in preview mode; warnings for non-fatal runtime errors. Errors if no session or bridge times out (default 10000ms).',
+      'Capture a PNG of the running viewport. responseMode: preview (default - saves full PNG, returns bounded inline preview at 960x540), full (full inline PNG; use for small text or pixel-level inspection), path_only (saved-path only, no inline image). Saved under .mcp/screenshots. Returns: inline image block (full/preview modes), plus path and size of the saved PNG; previewPath/previewSize in preview mode; warnings for non-fatal runtime errors. Errors if no session or bridge times out (default 10000ms).',
     annotations: { readOnlyHint: true },
     inputSchema: {
       type: 'object',
@@ -234,7 +234,7 @@ export const runtimeToolDefinitions: ToolDefinition[] = [
   {
     name: 'simulate_input',
     description:
-      "Simulate sequential input in a running project. Each action's `type` (key, mouse_button, mouse_motion, click_element, action, wait) gates which other fields apply — see per-property docs. For click_element use get_ui_elements first; resolution is by path/name, not visible text. Press/release require two actions; insert wait between for frame ticks. Returns: success, actions_processed, warnings for runtime errors fired by input handlers. Errors if no session or any action fails validation.",
+      "Simulate sequential input in a running project. Each action's `type` (key, mouse_button, mouse_motion, click_element, action, wait) gates which other fields apply - see per-property docs. For click_element use get_ui_elements first; resolution is by path/name, not visible text. Press/release require two actions; insert wait between for frame ticks. Returns: success, actions_processed, warnings for runtime errors fired by input handlers. Errors if no session or any action fails validation.",
     annotations: { destructiveHint: true },
     inputSchema: {
       type: 'object',
@@ -259,7 +259,7 @@ export const runtimeToolDefinitions: ToolDefinition[] = [
               pressed: {
                 type: 'boolean',
                 description:
-                  '[key, mouse_button, action] Whether the input is pressed (true) or released (false). For mouse_button: omit to auto-click (press+release in one action); set explicitly only for hold/release. For key: defaults to true and does NOT auto-release — emit a second action with pressed:false to release.',
+                  '[key, mouse_button, action] Whether the input is pressed (true) or released (false). For mouse_button: omit to auto-click (press+release in one action); set explicitly only for hold/release. For key: defaults to true and does NOT auto-release - emit a second action with pressed:false to release.',
               },
               shift: { type: 'boolean', description: '[key] Shift modifier' },
               ctrl: { type: 'boolean', description: '[key] Ctrl modifier' },
@@ -308,7 +308,7 @@ export const runtimeToolDefinitions: ToolDefinition[] = [
               },
               strength: {
                 type: 'number',
-                description: '[action] Action strength (0–1, default 1.0)',
+                description: '[action] Action strength (0-1, default 1.0)',
               },
               ms: {
                 type: 'number',
@@ -388,7 +388,7 @@ export const runtimeToolDefinitions: ToolDefinition[] = [
   {
     name: 'run_script',
     description:
-      'Execute a custom GDScript in the live running project with full scene tree access. Requires an active runtime session. Script must extend Reference and define func execute(scene_tree: SceneTree) -> Variant. Return values are JSON-serialized (primitives, Vector2/3, Color, Dictionary, Array, and Node path strings). Use print() for debug output — it appears in get_debug_output, not in the result. In spawned mode, stderr runtime errors escalate to errors (when the script returns null) or surface as warnings. Returns: { success, result, warnings?, tip? } where result is the JSON-serialized return value of execute().',
+      'Execute a custom GDScript in the live running project with full scene tree access. Requires an active runtime session. Script must extend Reference and define func execute(scene_tree) (Godot 3.x - do NOT use type hints like ": SceneTree" or "-> Variant" as they cause compilation errors in GDScript 1.0). Return values are JSON-serialized (primitives, Vector2/3, Color, Dictionary, Array, and Node path strings). Use print() for debug output - it appears in get_debug_output, not in the result. In spawned mode, stderr runtime errors escalate to errors (when the script returns null) or surface as warnings. Returns: { success, result, warnings?, tip? } where result is the JSON-serialized return value of execute().',
     annotations: { destructiveHint: true },
     inputSchema: {
       type: 'object',
@@ -396,7 +396,7 @@ export const runtimeToolDefinitions: ToolDefinition[] = [
         script: {
           type: 'string',
           description:
-            'GDScript source code. Must contain "extends Reference" and "func execute(scene_tree: SceneTree) -> Variant".',
+            'GDScript source code. Must contain "extends Reference" and "func execute(scene_tree)" (Godot 3.x - no type annotations).',
         },
         timeout: {
           type: 'number',
@@ -414,6 +414,173 @@ export const runtimeToolDefinitions: ToolDefinition[] = [
         warnings: { type: 'array', items: { type: 'string' } },
         tip: { type: 'string' },
       },
+    },
+  },
+  {
+    name: 'get_performance_metrics',
+    description:
+      'Read all Godot Performance monitor values from the running game. Requires an active runtime session. Returns: a flat dictionary of all performance metrics including FPS, process time, memory usage, render stats (draw calls, vertices, video memory), physics stats (active objects, collision pairs), and object counts. Useful for profiling, optimization, and verifying that changes do not degrade performance.',
+    inputSchema: {
+      type: 'object',
+      properties: {},
+      required: [],
+    },
+    outputSchema: {
+      type: 'object',
+      properties: {
+        fps: { type: 'number' },
+        process_time_ms: { type: 'number' },
+        physics_process_time_ms: { type: 'number' },
+        memory_static_bytes: { type: 'number' },
+        memory_dynamic_bytes: { type: 'number' },
+        render_draw_calls: { type: 'number' },
+        render_vertices_in_frame: { type: 'number' },
+        render_objects_in_frame: { type: 'number' },
+        nodes_count: { type: 'number' },
+        physics_3d_active_objects: { type: 'number' },
+      },
+    },
+  },
+  {
+    name: 'query_spatial_collision',
+    description:
+      'Perform physics raycasting inside the active, running 3D world to check if placing an entity is clear, test pathfinding corridors, or detect spatial obstacles. Requires an active runtime session (run_project or attach_project). Returns: collided (boolean), and if collided: position, normal, collider_name, collider_path, collider_id.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        origin: {
+          type: 'object',
+          description: 'Starting point of raycast {x, y, z}',
+          properties: {
+            x: { type: 'number' },
+            y: { type: 'number' },
+            z: { type: 'number' },
+          },
+          required: ['x', 'y', 'z'],
+        },
+        destination: {
+          type: 'object',
+          description: 'Target point of raycast {x, y, z}',
+          properties: {
+            x: { type: 'number' },
+            y: { type: 'number' },
+            z: { type: 'number' },
+          },
+          required: ['x', 'y', 'z'],
+        },
+        collision_mask: {
+          type: 'number',
+          description: 'Physics collision layer bitmask to check (default: 1)',
+        },
+        exclude_bodies: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Node paths or names of colliders to ignore/exclude from the query',
+        },
+      },
+      required: ['origin', 'destination'],
+    },
+  },
+  {
+    name: 'get_ground_clamp',
+    description:
+      'Snap coordinates precisely to the top of road/terrain 3D colliders at any horizontal (x, z) location, returning the ground height (y) and surface normal vector. Requires an active runtime session. Scan starts from max_height downwards to min_height.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        position: {
+          type: 'object',
+          description: '2D coordinates {x, z} or 3D coordinate {x, y, z} representing the horizontal target location.',
+          properties: {
+            x: { type: 'number' },
+            y: { type: 'number' },
+            z: { type: 'number' },
+          },
+          required: ['x'],
+        },
+        max_height: {
+          type: 'number',
+          description: 'Start height of downwards scan (default: 100.0)',
+        },
+        min_height: {
+          type: 'number',
+          description: 'End height of downwards scan (default: -100.0)',
+        },
+        collision_mask: {
+          type: 'number',
+          description: 'Physics collision layer bitmask to check (default: 1, e.g. roads/terrain)',
+        },
+      },
+      required: ['position'],
+    },
+  },
+  {
+    name: 'record_telemetry_sequence',
+    description:
+      'Record a time-series sequence of physical/spatial telemetry (position, rotation, scale, linear/angular velocities) for a target node in the running scene over a duration of time at a specified sampling interval. Can optionally capture and save synchronized screenshots at each step. Returns the structured sequence data and the path to the saved JSON telemetry file under .mcp/telemetry/. Errors if targetNodePath is missing or invalid, or no runtime session is active.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        targetNodePath: {
+          type: 'string',
+          description:
+            'Absolute/relative node path or node name of the target node to record (e.g. "/root/HUD/Player" or "Player")',
+        },
+        duration: {
+          type: 'number',
+          description: 'Total duration in seconds to record telemetry (default: 2.0)',
+        },
+        interval: {
+          type: 'number',
+          description: 'Interval in seconds between telemetry samples (default: 0.2)',
+        },
+        captureScreenshots: {
+          type: 'boolean',
+          description: 'If true, captures synchronized PNG screenshots at each sample step (default: false)',
+        },
+      },
+      required: ['targetNodePath'],
+    },
+  },
+  {
+    name: 'navigate_to',
+    description:
+      'Autopilot pathfinding routing command for a 3D Spatial node. Moves the node along a collision-free path calculated via get_simple_path() from a Navigation node, falling back to direct linear interpolation. Executes over physics frame tick loops dynamically inside the running game.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        targetNodePath: {
+          type: 'string',
+          description: 'Absolute/relative node path or unique name of the target node to move (e.g. "/root/Player" or "Player").',
+        },
+        destination: {
+          type: 'object',
+          description: 'Vector3 destination coordinates object.',
+          properties: {
+            x: { type: 'number' },
+            y: { type: 'number' },
+            z: { type: 'number' },
+          },
+          required: ['x', 'y', 'z'],
+        },
+        speed: {
+          type: 'number',
+          description: 'Movement speed in units per second (default: 5.0).',
+        },
+        navigationNodePath: {
+          type: 'string',
+          description: 'Optional path to specific Navigation node. If omitted, auto-discovers Navigation provider recursively.',
+        },
+        tolerance: {
+          type: 'number',
+          description: 'Stopping distance tolerance radius (default: 1.0).',
+        },
+        timeout: {
+          type: 'number',
+          description: 'autoclose limit in seconds before interrupting path traversal (default: 10.0).',
+        },
+      },
+      required: ['targetNodePath', 'destination'],
     },
   },
 ];
@@ -565,7 +732,7 @@ export async function handleRunProject(runner: GodotRunner, args: OperationParam
         : '';
       const lines = [
         `${racePrefix}Godot process started, but the MCP bridge did not respond within ${BRIDGE_WAIT_SPAWNED_TIMEOUT_MS / 1000} seconds.`,
-        '- The bridge listener never came up — likely an early _ready error or a stuck process holding the port',
+        '- The bridge listener never came up - likely an early _ready error or a stuck process holding the port',
         '- Session has been torn down; retry run_project to start a new one',
         errorTail,
       ];
@@ -582,7 +749,7 @@ export async function handleRunProject(runner: GodotRunner, args: OperationParam
       ];
       if (raceDetected) {
         solutions.push(
-          'Concurrent MCP clients in the same project are not supported — run them in separate projects or sequence the calls',
+          'Concurrent MCP clients in the same project are not supported - run them in separate projects or sequence the calls',
         );
       }
       return createErrorResponse(lines.join('\n'), solutions);
@@ -656,14 +823,14 @@ export async function handleAttachProject(runner: GodotRunner, args: OperationPa
       // attach_project (or run_project) works without a manual detach first.
       await runner.stopProject();
       const solutions = [
-        'If you are launching Godot yourself, run the launch in parallel with attach_project next time so the wait absorbs the startup — do not sequentialize',
-        'If a human is launching Godot, retry attach_project once they have launched — bridge.inject is idempotent',
+        'If you are launching Godot yourself, run the launch in parallel with attach_project next time so the wait absorbs the startup - do not sequentialize',
+        'If a human is launching Godot, retry attach_project once they have launched - bridge.inject is idempotent',
         'If Godot is already running but was launched before the bridge was injected, restart it (autoloads are read at startup)',
         `Check that no other Godot project is occupying the assigned bridge port (${runner.activeBridgePort})`,
       ];
       if (raceDetected) {
         solutions.push(
-          'Concurrent MCP clients in the same project are not supported — run them in separate projects or sequence the calls',
+          'Concurrent MCP clients in the same project are not supported - run them in separate projects or sequence the calls',
         );
       }
       return createErrorResponse(
@@ -878,7 +1045,7 @@ export async function handleTakeScreenshot(runner: GodotRunner, args: OperationP
 
     if (!parsed.path) {
       return createErrorResponse('Screenshot server returned no file path', [
-        'The bridge response is missing the expected `path` field — this is a bridge bug, not a timing issue',
+        'The bridge response is missing the expected `path` field - this is a bridge bug, not a timing issue',
         'Check get_debug_output for runtime errors during the screenshot save',
       ]);
     }
@@ -1177,7 +1344,7 @@ export async function handleRunScript(runner: GodotRunner, args: OperationParams
               success: true,
               result: null,
               warning:
-                'Script returned null. If unexpected, check get_debug_output for runtime errors — GDScript does not propagate exceptions.',
+                'Script returned null. If unexpected, check get_debug_output for runtime errors - GDScript does not propagate exceptions.',
               tip: 'Call take_screenshot to verify any visual changes, or get_debug_output to review print() output from your script.',
             }),
           },
@@ -1205,6 +1372,256 @@ export async function handleRunScript(runner: GodotRunner, args: OperationParams
       'Check get_debug_output for crash backtraces or runtime errors raised inside the script',
       'If the game has exited, call stop_project, then run_project again',
       'For long-running scripts, increase the timeout parameter',
+    ]);
+  }
+}
+
+export async function handleGetPerformanceMetrics(runner: GodotRunner, _args: OperationParams) {
+  const sessionError = ensureRuntimeSession(runner, 'read performance metrics');
+  if (sessionError) {
+    return sessionError;
+  }
+
+  try {
+    const { response: responseStr } = await runner.sendCommandWithErrors(
+      'performance_metrics',
+      {},
+      5000,
+    );
+
+    const parsedResult = parseBridgeJson<Record<string, number>>(responseStr, 'get_performance_metrics');
+    if (!parsedResult.ok) return parsedResult.response;
+    const parsed = parsedResult.data;
+
+    return {
+      content: [
+        {
+          type: 'text' as const,
+          text: JSON.stringify(parsed, null, 2),
+        },
+      ],
+    };
+  } catch (error: unknown) {
+    return createErrorResponse(`Failed to get performance metrics: ${getErrorMessage(error)}`, [
+      'Ensure the project is still running',
+      'Try get_debug_output to check for runtime errors',
+    ]);
+  }
+}
+
+export async function handleQuerySpatialCollision(runner: GodotRunner, args: OperationParams) {
+  args = normalizeParameters(args);
+  const sessionError = ensureRuntimeSession(runner, 'query spatial collisions');
+  if (sessionError) return sessionError;
+
+  const origin = args.origin;
+  const destination = args.destination;
+  if (!origin || typeof origin !== 'object' || !destination || typeof destination !== 'object') {
+    return createErrorResponse('origin and destination objects are required with x, y, and z numbers', [
+      'Provide origin as {x: number, y: number, z: number}',
+      'Provide destination as {x: number, y: number, z: number}',
+    ]);
+  }
+
+  const payload: Record<string, unknown> = {
+    origin,
+    destination,
+    collision_mask: typeof args.collisionMask === 'number' ? args.collisionMask : 1,
+    exclude_bodies: Array.isArray(args.excludeBodies) ? args.excludeBodies : [],
+  };
+
+  try {
+    const { response: responseStr } = await runner.sendCommandWithErrors(
+      'query_spatial_collision',
+      payload,
+      10000,
+    );
+
+    const parsedResult = parseBridgeJson<any>(responseStr, 'query_spatial_collision');
+    if (!parsedResult.ok) return parsedResult.response;
+    return {
+      content: [
+        {
+          type: 'text' as const,
+          text: JSON.stringify(parsedResult.data, null, 2),
+        },
+      ],
+    };
+  } catch (error: unknown) {
+    return createErrorResponse(`Failed to query spatial collision: ${getErrorMessage(error)}`, [
+      'Ensure the project is still running',
+      'Try get_debug_output to check for runtime errors',
+    ]);
+  }
+}
+
+export async function handleGetGroundClamp(runner: GodotRunner, args: OperationParams) {
+  args = normalizeParameters(args);
+  const sessionError = ensureRuntimeSession(runner, 'get ground clamp');
+  if (sessionError) return sessionError;
+
+  const position = args.position;
+  if (!position || typeof position !== 'object') {
+    return createErrorResponse('position object is required with x and z coordinates', [
+      'Provide position as {x: number, z: number} or {x: number, y: number, z: number}',
+    ]);
+  }
+
+  const payload: Record<string, unknown> = {
+    position,
+    max_height: typeof args.maxHeight === 'number' ? args.maxHeight : 100.0,
+    min_height: typeof args.minHeight === 'number' ? args.minHeight : -100.0,
+    collision_mask: typeof args.collisionMask === 'number' ? args.collisionMask : 1,
+  };
+
+  try {
+    const { response: responseStr } = await runner.sendCommandWithErrors(
+      'get_ground_clamp',
+      payload,
+      10000,
+    );
+
+    const parsedResult = parseBridgeJson<any>(responseStr, 'get_ground_clamp');
+    if (!parsedResult.ok) return parsedResult.response;
+    return {
+      content: [
+        {
+          type: 'text' as const,
+          text: JSON.stringify(parsedResult.data, null, 2),
+        },
+      ],
+    };
+  } catch (error: unknown) {
+    return createErrorResponse(`Failed to get ground clamp: ${getErrorMessage(error)}`, [
+      'Ensure the project is still running',
+      'Try get_debug_output to check for runtime errors',
+    ]);
+  }
+}
+
+export async function handleRecordTelemetrySequence(runner: GodotRunner, args: OperationParams) {
+  args = normalizeParameters(args);
+
+  const sessionErr = ensureRuntimeSession(runner, 'record telemetry sequence');
+  if (sessionErr) return sessionErr;
+
+  if (typeof args.targetNodePath !== 'string' || !args.targetNodePath) {
+    return createErrorResponse('targetNodePath is required and must be a non-empty string', [
+      'Provide a valid node path or node name to record',
+    ]);
+  }
+
+  const duration = typeof args.duration === 'number' ? args.duration : 2.0;
+  const interval = typeof args.interval === 'number' ? args.interval : 0.2;
+  const captureScreenshots = args.captureScreenshots === true;
+
+  if (duration <= 0 || duration > 30) {
+    return createErrorResponse('duration must be a positive number up to 30 seconds', [
+      'Reduce duration to avoid blocking connection for too long (max 30s)',
+    ]);
+  }
+
+  if (interval < 0.05 || interval > 5) {
+    return createErrorResponse('interval must be between 0.05 and 5 seconds', [
+      'Provide a valid interval (e.g. 0.1s or 0.5s)',
+    ]);
+  }
+
+  const payload: Record<string, unknown> = {
+    target_node_path: args.targetNodePath,
+    duration,
+    interval,
+    capture_screenshots: captureScreenshots,
+  };
+
+  try {
+    const timeoutMs = (duration * 1000) + 10000;
+    const { response: responseStr } = await runner.sendCommandWithErrors(
+      'record_telemetry_sequence',
+      payload,
+      timeoutMs,
+    );
+
+    const parsedResult = parseBridgeJson<any>(responseStr, 'record_telemetry_sequence');
+    if (!parsedResult.ok) return parsedResult.response;
+    return {
+      content: [
+        {
+          type: 'text' as const,
+          text: JSON.stringify(parsedResult.data, null, 2),
+        },
+      ],
+    };
+  } catch (error: unknown) {
+    return createErrorResponse(`Failed to record telemetry sequence: ${getErrorMessage(error)}`, [
+      'Ensure the project is still running',
+      'Try get_debug_output to check for runtime errors',
+    ]);
+  }
+}
+
+export async function handleNavigateTo(runner: GodotRunner, args: OperationParams) {
+  args = normalizeParameters(args);
+
+  const sessionErr = ensureRuntimeSession(runner, 'navigate to');
+  if (sessionErr) return sessionErr;
+
+  if (typeof args.targetNodePath !== 'string' || !args.targetNodePath) {
+    return createErrorResponse('targetNodePath is required and must be a non-empty string', [
+      'Provide a valid node path or node name to navigate',
+    ]);
+  }
+
+  if (typeof args.destination !== 'object' || args.destination === null) {
+    return createErrorResponse('destination is required and must be a valid Vector3 object', [
+      'Provide destination as { "x": x, "y": y, "z": z }',
+    ]);
+  }
+
+  const speed = typeof args.speed === 'number' ? args.speed : 5.0;
+  const tolerance = typeof args.tolerance === 'number' ? args.tolerance : 1.0;
+  const timeout = typeof args.timeout === 'number' ? args.timeout : 10.0;
+
+  if (timeout <= 0 || timeout > 180) {
+    return createErrorResponse('timeout must be a positive number up to 180 seconds', [
+      'Reduce timeout to avoid blocking connection for too long (max 180s)',
+    ]);
+  }
+
+  const payload: Record<string, unknown> = {
+    target_node_path: args.targetNodePath,
+    destination: args.destination,
+    speed,
+    tolerance,
+    timeout,
+  };
+
+  if (args.navigationNodePath !== undefined) {
+    payload.navigation_node_path = args.navigationNodePath;
+  }
+
+  try {
+    const timeoutMs = (timeout * 1000) + 10000;
+    const { response: responseStr } = await runner.sendCommandWithErrors(
+      'navigate_to',
+      payload,
+      timeoutMs,
+    );
+
+    const parsedResult = parseBridgeJson<any>(responseStr, 'navigate_to');
+    if (!parsedResult.ok) return parsedResult.response;
+    return {
+      content: [
+        {
+          type: 'text' as const,
+          text: JSON.stringify(parsedResult.data, null, 2),
+        },
+      ],
+    };
+  } catch (error: unknown) {
+    return createErrorResponse(`Failed to navigate: ${getErrorMessage(error)}`, [
+      'Ensure the project is still running',
+      'Try get_debug_output to check for runtime errors',
     ]);
   }
 }

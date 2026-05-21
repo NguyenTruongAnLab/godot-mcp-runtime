@@ -18,7 +18,7 @@ export const FRAME_HEADER_BYTES = 4;
 /**
  * Find an available TCP port by binding to port 0 (OS-assigned ephemeral port),
  * reading the assigned port, and closing the listener. The brief TOCTOU window
- * between close and the consumer's listen is acceptable — if a collision occurs,
+ * between close and the consumer's listen is acceptable - if a collision occurs,
  * the bridge readiness check will surface the failure.
  */
 export function findFreePort(): Promise<number> {
@@ -35,7 +35,7 @@ export function findFreePort(): Promise<number> {
       srv.close(() => resolve(port));
     });
     // One-shot: only fires before listen() succeeds. If listen succeeded,
-    // we proceed to srv.close() in the listening callback — a later error
+    // we proceed to srv.close() in the listening callback - a later error
     // is not possible from this server, so the listener stays safely dormant.
     srv.on('error', reject);
   });
@@ -64,7 +64,7 @@ export interface ParseFramesResult {
  * Pull as many complete frames as possible from a streaming buffer. Any
  * partial frame at the tail is returned as `remainder` for the next call.
  *
- * Throws if a header advertises a payload larger than {@link MAX_FRAME_BYTES} —
+ * Throws if a header advertises a payload larger than {@link MAX_FRAME_BYTES} -
  * the caller should treat this as a fatal protocol error and close the socket.
  */
 export function parseFrames(buffer: Buffer): ParseFramesResult {

@@ -8,7 +8,7 @@
  * truly headless environments (no X server, no Wayland, no Windows desktop)
  * Godot's display server will fail to start and the test will time out or
  * error before the bridge is ready. If this is the case in your environment,
- * the test is marked it.skip with a comment — do not remove the test, flag
+ * the test is marked it.skip with a comment - do not remove the test, flag
  * it to the team lead instead.
  *
  * Requires GODOT_PATH. Skipped in CI.
@@ -72,21 +72,21 @@ describe('runtime bridge smoke', () => {
       tmpProject = join(tmpdir(), `godot-mcp-runtime-smoke-${id}`);
       cpSync(fixtureProjectPath, tmpProject, { recursive: true });
 
-      // Start the project — waitForBridge polls until the TCP ping responds
+      // Start the project - waitForBridge polls until the TCP ping responds
       await runner.runProject(tmpProject);
       const bridgeResult = await runner.waitForBridge(20000);
 
       if (!bridgeResult.ready) {
         // Distinguish "no display server" (acceptable skip) from "process exited
         // / port collision / bridge code is broken" (real failure that must not
-        // pass silently). ctx.skip() reports the test as skipped — a bare
+        // pass silently). ctx.skip() reports the test as skipped - a bare
         // `return` would silently mark it passed, hiding the no-display case.
         if (isHeadlessEnvironmentError(bridgeResult.error)) {
           ctx.skip(`display server unavailable (${bridgeResult.error})`);
         }
         throw new Error(
           `Bridge failed to initialise: ${bridgeResult.error ?? 'unknown error'}. ` +
-            `This is not a "no display" skip — runProject or the bridge is broken.`,
+            `This is not a "no display" skip - runProject or the bridge is broken.`,
         );
       }
 

@@ -5,7 +5,7 @@ import { hasError, expectErrorMatching } from '../../helpers/assertions.js';
 import { fixtureProjectPath, fixtureScenePath } from '../../helpers/fixture-paths.js';
 
 // ---------------------------------------------------------------------------
-// handleValidate — single-target mode
+// handleValidate - single-target mode
 // ---------------------------------------------------------------------------
 
 describe('handleValidate', () => {
@@ -105,7 +105,7 @@ describe('handleValidate', () => {
   });
 
   it('returns a result (not isError) when runner succeeds with invalid JSON stdout (treated as invalid script)', async () => {
-    // Non-JSON stdout is handled gracefully — valid=false but no isError
+    // Non-JSON stdout is handled gracefully - valid=false but no isError
     const fake = createFakeRunner({ stdout: 'not json at all' });
     const result = await handleValidate(fake.asRunner, {
       projectPath: fixtureProjectPath,
@@ -139,7 +139,7 @@ describe('handleValidate', () => {
 });
 
 // ---------------------------------------------------------------------------
-// handleValidate — batch (targets[]) mode
+// handleValidate - batch (targets[]) mode
 // ---------------------------------------------------------------------------
 
 describe('handleValidate batch mode', () => {
@@ -218,7 +218,7 @@ describe('handleValidate batch mode', () => {
       targets: [{ scriptPath: '../escape.gd' }],
     });
     expect(hasError(result)).toBe(false);
-    expect(fake.calls).toHaveLength(0); // short-circuit — no runner spawn
+    expect(fake.calls).toHaveLength(0); // short-circuit - no runner spawn
     const parsed = JSON.parse((result as { content: Array<{ text: string }> }).content[0].text);
     expect(parsed.results).toHaveLength(1);
     expect(parsed.results[0].valid).toBe(false);

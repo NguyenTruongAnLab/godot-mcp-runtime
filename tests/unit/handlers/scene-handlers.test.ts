@@ -530,3 +530,4 @@ describe('handleInstanceScene', () => {
     expect(text).toContain('instanced successfully');
   });
 });
+

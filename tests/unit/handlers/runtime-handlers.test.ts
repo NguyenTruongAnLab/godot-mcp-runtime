@@ -5,7 +5,7 @@
  * in the project: bridge response shaping, runtime-error escalation, mode
  * branching for debug-output and stop, ensureRuntimeSession gating, and the
  * timeout calculation in simulate_input. None of these need a Godot binary
- * to verify — they all branch on runner state + bridge response strings.
+ * to verify - they all branch on runner state + bridge response strings.
  *
  * The fake runner here extends the standard fake with the runtime surface
  * (sendCommandWithErrors, session state, stopProject). Kept inline because
@@ -26,6 +26,9 @@ import {
   handleRunProject,
   handleAttachProject,
   handleLaunchEditor,
+  handleQuerySpatialCollision,
+  handleGetGroundClamp,
+  handleRecordTelemetrySequence,
 } from '../../../src/tools/runtime-tools.js';
 import { fixtureProjectPath } from '../../helpers/fixture-paths.js';
 import type {
@@ -195,7 +198,7 @@ const tmp = useTmpDirs();
 
 function makeRunningProcess(opts: Partial<GodotProcess> = {}): GodotProcess {
   return {
-    // Intentionally unset — no covered handler reads `.process`. If a future handler calls
+    // Intentionally unset - no covered handler reads `.process`. If a future handler calls
     // `proc.process.kill()` or similar, give it a real (or stubbed) ChildProcess here.
     process: undefined as unknown as GodotProcess['process'],
     output: opts.output ?? [],
@@ -230,7 +233,7 @@ describe('handleRunProject validation', () => {
     expectErrorMatching(result, /not a valid godot project/i);
   });
 
-  // Regression: issue #15 — without an explicit Godot-path precheck, an
+  // Regression: issue #15 - without an explicit Godot-path precheck, an
   // unresolved godotPath used to bubble up as a generic "Failed to run
   // Godot project" error pointing at a hardcoded `C:\Program Files\...`
   // fallback path the user never configured. The handler must now surface
@@ -410,7 +413,7 @@ describe('handleLaunchEditor validation', () => {
 });
 
 // ---------------------------------------------------------------------------
-// ensureRuntimeSession (via handleTakeScreenshot — same gate every runtime
+// ensureRuntimeSession (via handleTakeScreenshot - same gate every runtime
 // handler uses)
 // ---------------------------------------------------------------------------
 
@@ -615,7 +618,7 @@ describe('handleDetachProject', () => {
 });
 
 // ---------------------------------------------------------------------------
-// handleSimulateInput — totalWaitMs calculation
+// handleSimulateInput - totalWaitMs calculation
 // ---------------------------------------------------------------------------
 
 describe('handleSimulateInput', () => {
@@ -666,8 +669,8 @@ describe('handleSimulateInput', () => {
     const fake = setupActive();
     await handleSimulateInput(fake.asRunner, {
       actions: [
-        { type: 'wait' }, // missing ms — ignored
-        { type: 'wait', ms: '500' }, // wrong type — ignored
+        { type: 'wait' }, // missing ms - ignored
+        { type: 'wait', ms: '500' }, // wrong type - ignored
         { type: 'wait', ms: 1000 },
       ],
     });
@@ -697,7 +700,7 @@ describe('handleSimulateInput', () => {
 });
 
 // ---------------------------------------------------------------------------
-// handleGetUiElements — defaulting + parameter renaming
+// handleGetUiElements - defaulting + parameter renaming
 // ---------------------------------------------------------------------------
 
 describe('handleGetUiElements', () => {
@@ -738,7 +741,7 @@ describe('handleGetUiElements', () => {
 });
 
 // ---------------------------------------------------------------------------
-// handleRunScript — false-positive null-result detection + audit write
+// handleRunScript - false-positive null-result detection + audit write
 // ---------------------------------------------------------------------------
 
 describe('handleRunScript', () => {
@@ -852,7 +855,7 @@ describe('handleRunScript', () => {
 });
 
 // ---------------------------------------------------------------------------
-// handleTakeScreenshot — bridge response shape branches
+// handleTakeScreenshot - bridge response shape branches
 // ---------------------------------------------------------------------------
 
 describe('handleTakeScreenshot bridge response shapes', () => {
@@ -1070,3 +1073,198 @@ describe('handleTakeScreenshot bridge response shapes', () => {
     expectErrorMatching(result, /preview path outside \.mcp\/screenshots\//i);
   });
 });
+
+describe('handleQuerySpatialCollision', () => {
+  let fake: RuntimeFake;
+
+  beforeEach(() => {
+    fake = createRuntimeFake();
+  });
+
+  it('rejects when no session is active', async () => {
+    fake.setSession({ mode: null });
+    const result = await handleQuerySpatialCollision(fake.asRunner, {
+      origin: { x: 0, y: 0, z: 0 },
+      destination: { x: 0, y: 0, z: 10 },
+    });
+    expectErrorMatching(result, /No active runtime session/i);
+  });
+
+  it('rejects when origin or destination is missing', async () => {
+    fake.setSession({ mode: 'spawned', projectPath: '/p', process: makeRunningProcess() });
+    const result1 = await handleQuerySpatialCollision(fake.asRunner, {
+      origin: { x: 0, y: 0, z: 0 },
+    });
+    expectErrorMatching(result1, /origin and destination.*required/i);
+
+    const result2 = await handleQuerySpatialCollision(fake.asRunner, {
+      destination: { x: 0, y: 0, z: 10 },
+    });
+    expectErrorMatching(result2, /origin and destination.*required/i);
+  });
+
+  it('forwards correct payload and returns bridge response', async () => {
+    fake.setSession({ mode: 'spawned', projectPath: '/p', process: makeRunningProcess() });
+    const mockData = { collided: true, collider_id: 12345, position: { x: 0, y: 0, z: 5.5 } };
+    fake.setBridgeResponse(JSON.stringify(mockData));
+
+    const result = await handleQuerySpatialCollision(fake.asRunner, {
+      origin: { x: 0, y: 0, z: 0 },
+      destination: { x: 0, y: 0, z: 10 },
+      collision_mask: 2,
+      exclude_bodies: [999],
+    });
+
+    expect(hasError(result)).toBe(false);
+    expect(fake.bridgeCalls).toHaveLength(1);
+    expect(fake.bridgeCalls[0]).toMatchObject({
+      command: 'query_spatial_collision',
+      params: {
+        origin: { x: 0, y: 0, z: 0 },
+        destination: { x: 0, y: 0, z: 10 },
+        collision_mask: 2,
+        exclude_bodies: [999],
+      },
+      timeoutMs: 10000,
+    });
+
+    const parsed = JSON.parse((result as { content: Array<{ text: string }> }).content[0].text);
+    expect(parsed).toEqual(mockData);
+  });
+});
+
+describe('handleGetGroundClamp', () => {
+  let fake: RuntimeFake;
+
+  beforeEach(() => {
+    fake = createRuntimeFake();
+  });
+
+  it('rejects when no session is active', async () => {
+    fake.setSession({ mode: null });
+    const result = await handleGetGroundClamp(fake.asRunner, {
+      position: { x: 10, z: 20 },
+    });
+    expectErrorMatching(result, /No active runtime session/i);
+  });
+
+  it('rejects when position is missing', async () => {
+    fake.setSession({ mode: 'spawned', projectPath: '/p', process: makeRunningProcess() });
+    const result = await handleGetGroundClamp(fake.asRunner, {});
+    expectErrorMatching(result, /position object is required/i);
+  });
+
+  it('forwards correct payload and returns bridge response', async () => {
+    fake.setSession({ mode: 'spawned', projectPath: '/p', process: makeRunningProcess() });
+    const mockData = { y: 15.5, normal: { x: 0, y: 1, z: 0 } };
+    fake.setBridgeResponse(JSON.stringify(mockData));
+
+    const result = await handleGetGroundClamp(fake.asRunner, {
+      position: { x: 10, y: 2, z: 20 },
+      max_height: 50.0,
+      min_height: -50.0,
+      collision_mask: 4,
+    });
+
+    expect(hasError(result)).toBe(false);
+    expect(fake.bridgeCalls).toHaveLength(1);
+    expect(fake.bridgeCalls[0]).toMatchObject({
+      command: 'get_ground_clamp',
+      params: {
+        position: { x: 10, y: 2, z: 20 },
+        max_height: 50.0,
+        min_height: -50.0,
+        collision_mask: 4,
+      },
+      timeoutMs: 10000,
+    });
+
+    const parsed = JSON.parse((result as { content: Array<{ text: string }> }).content[0].text);
+    expect(parsed).toEqual(mockData);
+  });
+});
+
+describe('handleRecordTelemetrySequence', () => {
+  let fake: RuntimeFake;
+
+  beforeEach(() => {
+    fake = createRuntimeFake();
+  });
+
+  it('rejects when no session is active', async () => {
+    fake.setSession({ mode: null });
+    const result = await handleRecordTelemetrySequence(fake.asRunner, {
+      target_node_path: 'root/Player',
+    });
+    expectErrorMatching(result, /No active runtime session/i);
+  });
+
+  it('rejects when targetNodePath is missing or empty', async () => {
+    fake.setSession({ mode: 'spawned', projectPath: '/p', process: makeRunningProcess() });
+    const result = await handleRecordTelemetrySequence(fake.asRunner, {});
+    expectErrorMatching(result, /targetNodePath is required/i);
+  });
+
+  it('rejects invalid duration values', async () => {
+    fake.setSession({ mode: 'spawned', projectPath: '/p', process: makeRunningProcess() });
+    const result1 = await handleRecordTelemetrySequence(fake.asRunner, {
+      target_node_path: 'root/Player',
+      duration: -1,
+    });
+    expectErrorMatching(result1, /duration must be a positive number/i);
+
+    const result2 = await handleRecordTelemetrySequence(fake.asRunner, {
+      target_node_path: 'root/Player',
+      duration: 35,
+    });
+    expectErrorMatching(result2, /duration must be a positive number/i);
+  });
+
+  it('rejects invalid interval values', async () => {
+    fake.setSession({ mode: 'spawned', projectPath: '/p', process: makeRunningProcess() });
+    const result1 = await handleRecordTelemetrySequence(fake.asRunner, {
+      target_node_path: 'root/Player',
+      interval: 0.01,
+    });
+    expectErrorMatching(result1, /interval must be between/i);
+
+    const result2 = await handleRecordTelemetrySequence(fake.asRunner, {
+      target_node_path: 'root/Player',
+      interval: 10,
+    });
+    expectErrorMatching(result2, /interval must be between/i);
+  });
+
+  it('forwards correct payload and returns bridge response on success', async () => {
+    fake.setSession({ mode: 'spawned', projectPath: '/p', process: makeRunningProcess() });
+    const mockData = {
+      file: '.mcp/telemetry/telemetry_123.json',
+      samples_recorded: 5,
+    };
+    fake.setBridgeResponse(JSON.stringify(mockData));
+
+    const result = await handleRecordTelemetrySequence(fake.asRunner, {
+      target_node_path: 'root/Player',
+      duration: 1.5,
+      interval: 0.3,
+      capture_screenshots: true,
+    });
+
+    expect(hasError(result)).toBe(false);
+    expect(fake.bridgeCalls).toHaveLength(1);
+    expect(fake.bridgeCalls[0]).toMatchObject({
+      command: 'record_telemetry_sequence',
+      params: {
+        target_node_path: 'root/Player',
+        duration: 1.5,
+        interval: 0.3,
+        capture_screenshots: true,
+      },
+      timeoutMs: 11500, // 1.5s * 1000 + 10000
+    });
+
+    const parsed = JSON.parse((result as { content: Array<{ text: string }> }).content[0].text);
+    expect(parsed).toEqual(mockData);
+  });
+});
+

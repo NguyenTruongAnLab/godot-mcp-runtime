@@ -7,8 +7,8 @@ const BRIDGE_AUTOLOAD_NAME = 'McpBridge';
 const BRIDGE_SCRIPT_FILENAME = 'mcp_bridge.gd';
 const MCP_GITIGNORE_ENTRY = '.mcp/';
 
-// Matches the baked-port marker line inserted in src/scripts/mcp_bridge.gd —
-// `const PORT := <int>` — so inject() can rewrite the integer per project.
+// Matches the baked-port marker line inserted in src/scripts/mcp_bridge.gd -
+// `const PORT := <int>` - so inject() can rewrite the integer per project.
 const BAKED_PORT_REGEX = /const PORT := \d+/;
 
 /**
@@ -36,7 +36,7 @@ export class BridgeManager {
   constructor(private bridgeScriptPath: string) {}
 
   inject(projectPath: string, port: number): void {
-    // Always rewrite the destination — the per-project bridge script may
+    // Always rewrite the destination - the per-project bridge script may
     // differ from the template by exactly the baked integer, so a size/mtime
     // shortcut no longer maps to "up-to-date." Bake the resolved port into
     // the const PORT line so the running game listens on the exact port the

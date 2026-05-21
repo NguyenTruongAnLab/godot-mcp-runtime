@@ -1,11 +1,6 @@
 import { join, basename } from 'path';
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'fs';
-import type {
-  GodotRunner,
-  OperationParams,
-  ToolDefinition,
-  ToolResponse,
-} from '../utils/godot-runner.js';
+import type { GodotRunner, OperationParams, ToolDefinition, ToolResponse } from '../utils/godot-runner.js';
 import {
   normalizeParameters,
   validatePath,
@@ -56,7 +51,7 @@ export const projectToolDefinitions: ToolDefinition[] = [
         projectPath: {
           type: 'string',
           description:
-            'Path to the Godot project directory (optional — omit to get Godot version only)',
+            'Path to the Godot project directory (optional - omit to get Godot version only)',
         },
       },
       required: [],
@@ -88,7 +83,7 @@ export const projectToolDefinitions: ToolDefinition[] = [
   {
     name: 'search_project',
     description:
-      'Plain-text (substring) search across project files. Use to find references, callers, or signatures across the codebase. Default fileTypes is ["gd","tscn","cs","gdshader"]; caseSensitive default false; maxResults default 100. Skips hidden entries and the .mcp directory. Returns: matches[] (project-relative file, 1-indexed lineNumber, line text) and truncated:true when maxResults was hit — consider raising it.',
+      'Plain-text (substring) search across project files. Use to find references, callers, or signatures across the codebase. Default fileTypes is ["gd","tscn","cs","gdshader"]; caseSensitive default false; maxResults default 100. Skips hidden entries and the .mcp directory. Returns: matches[] (project-relative file, 1-indexed lineNumber, line text) and truncated:true when maxResults was hit - consider raising it.',
     annotations: { readOnlyHint: true },
     inputSchema: {
       type: 'object',
@@ -185,14 +180,8 @@ export const projectToolDefinitions: ToolDefinition[] = [
       type: 'object',
       properties: {
         projectPath: { type: 'string', description: 'Path to the Godot project directory' },
-        section: {
-          type: 'string',
-          description: 'The section header in project.godot (e.g. "display")',
-        },
-        key: {
-          type: 'string',
-          description: 'The setting key to configure (e.g. "window/size/width")',
-        },
+        section: { type: 'string', description: 'The section header in project.godot (e.g. "display")' },
+        key: { type: 'string', description: 'The setting key to configure (e.g. "window/size/width")' },
         value: {
           type: ['string', 'number', 'boolean'],
           description: 'The value to assign to this setting (e.g. 1024, true, or a string)',
@@ -211,12 +200,7 @@ export const projectToolDefinitions: ToolDefinition[] = [
       properties: {
         projectPath: { type: 'string', description: 'Path to the Godot project directory' },
         type: { type: 'string', enum: ['2d', '3d'], description: 'Physics dimension type' },
-        layerIndex: {
-          type: 'number',
-          minimum: 1,
-          maximum: 32,
-          description: 'Collision layer index (1 to 32)',
-        },
+        layerIndex: { type: 'number', minimum: 1, maximum: 32, description: 'Collision layer index (1 to 32)' },
         name: { type: 'string', description: 'Friendly name to assign to the collision layer' },
       },
       required: ['projectPath', 'type', 'layerIndex', 'name'],
@@ -698,15 +682,15 @@ export function modifyProjectGodotInPlace(
   projectFile: string,
   section: string,
   key: string,
-  serializedValue: string,
+  serializedValue: string
 ): void {
   const content = readFileSync(projectFile, 'utf8');
   const lines = content.split(/\r?\n/);
-
+  
   let targetSectionLine = -1;
   let nextSectionLine = -1;
   const targetHeader = `[${section}]`;
-
+  
   for (let i = 0; i < lines.length; i++) {
     const trimmed = lines[i].trim();
     if (trimmed === targetHeader) {
@@ -722,17 +706,17 @@ export function modifyProjectGodotInPlace(
   }
 
   const keyEntry = `${key}=${serializedValue}`;
-
+  
   if (targetSectionLine === -1) {
     const newContent = content.trimEnd() + `\n\n[${section}]\n\n${keyEntry}\n`;
     writeFileSync(projectFile, newContent, 'utf8');
     return;
   }
-
+  
   const searchEnd = nextSectionLine === -1 ? lines.length : nextSectionLine;
   let keyLineIdx = -1;
   const keyPrefix = `${key}=`;
-
+  
   for (let i = targetSectionLine + 1; i < searchEnd; i++) {
     const trimmed = lines[i].trim().replace(/\s*=\s*/, '=');
     if (trimmed.startsWith(keyPrefix)) {
@@ -740,20 +724,17 @@ export function modifyProjectGodotInPlace(
       break;
     }
   }
-
+  
   if (keyLineIdx !== -1) {
     lines[keyLineIdx] = keyEntry;
   } else {
     lines.splice(targetSectionLine + 1, 0, keyEntry);
   }
-
+  
   writeFileSync(projectFile, lines.join('\n'), 'utf8');
 }
 
-export async function handleSetProjectSetting(
-  _runner: any,
-  args: OperationParams,
-): Promise<ToolResponse> {
+export async function handleSetProjectSetting(_runner: any, args: OperationParams): Promise<ToolResponse> {
   args = normalizeParameters(args);
   const v = validateProjectArgs(args);
   if ('isError' in v) return v;
@@ -786,19 +767,14 @@ export async function handleSetProjectSetting(
   }
 }
 
-export async function handleSetCollisionLayerName(
-  _runner: any,
-  args: OperationParams,
-): Promise<ToolResponse> {
+export async function handleSetCollisionLayerName(_runner: any, args: OperationParams): Promise<ToolResponse> {
   args = normalizeParameters(args);
   const v = validateProjectArgs(args);
   if ('isError' in v) return v;
 
   const type = args.type as string;
   if (!type || !['2d', '3d'].includes(type)) {
-    return createErrorResponse('type must be "2d" or "3d"', [
-      'Provide a valid physics dimension type',
-    ]);
+    return createErrorResponse('type must be "2d" or "3d"', ['Provide a valid physics dimension type']);
   }
 
   const layerIndex = Number(args.layerIndex);
@@ -809,9 +785,7 @@ export async function handleSetCollisionLayerName(
   }
 
   if (args.name === undefined || typeof args.name !== 'string') {
-    return createErrorResponse('name is required as a string', [
-      'Provide the friendly name for the layer',
-    ]);
+    return createErrorResponse('name is required as a string', ['Provide the friendly name for the layer']);
   }
 
   try {
@@ -833,3 +807,4 @@ export async function handleSetCollisionLayerName(
     return createErrorResponse(`Failed to set collision layer name: ${getErrorMessage(error)}`);
   }
 }
+

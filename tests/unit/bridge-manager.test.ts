@@ -81,7 +81,7 @@ describe('BridgeManager.inject', () => {
     expect(matches.length).toBe(1);
   });
 
-  it('is idempotent within a session — second inject does not duplicate the autoload entry', () => {
+  it('is idempotent within a session - second inject does not duplicate the autoload entry', () => {
     const { projectPath, manager } = setupProject();
     manager.inject(projectPath, TEST_PORT);
     manager.inject(projectPath, TEST_PORT);

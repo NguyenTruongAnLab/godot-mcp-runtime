@@ -16,7 +16,7 @@ export const nodeToolDefinitions: ToolDefinition[] = [
   {
     name: 'delete_nodes',
     description:
-      'Remove one or more nodes (and their descendants) from a scene file. Always-array: pass a single-element nodePaths array for one-off deletes. Saves once at the end. Cannot delete the scene root — that entry returns an error and the rest still process. Returns: results array with one entry per nodePath in input order (success or error message).',
+      'Remove one or more nodes (and their descendants) from a scene file. Always-array: pass a single-element nodePaths array for one-off deletes. Saves once at the end. Cannot delete the scene root - that entry returns an error and the rest still process. Returns: results array with one entry per nodePath in input order (success or error message).',
     annotations: { destructiveHint: true },
     inputSchema: {
       type: 'object',
@@ -192,7 +192,7 @@ export const nodeToolDefinitions: ToolDefinition[] = [
   {
     name: 'duplicate_node',
     description:
-      'Duplicate a node and its descendants in a Godot scene. Use to clone a configured subtree without re-creating it node-by-node via add_node. newName defaults to the original name + "2"; targetParentPath defaults to the original parent. Saves automatically. Returns: success with originalPath and the newPath where the duplicate now lives — use newPath for follow-up edits. Errors if nodePath does not exist or targetParentPath cannot accept children.',
+      'Duplicate a node and its descendants in a Godot scene. Use to clone a configured subtree without re-creating it node-by-node via add_node. newName defaults to the original name + "2"; targetParentPath defaults to the original parent. Saves automatically. Returns: success with originalPath and the newPath where the duplicate now lives - use newPath for follow-up edits. Errors if nodePath does not exist or targetParentPath cannot accept children.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -222,7 +222,7 @@ export const nodeToolDefinitions: ToolDefinition[] = [
   {
     name: 'get_node_signals',
     description:
-      'List all signals defined on a node and their current connections. Use before connect_signal/disconnect_signal to verify signal/method names. The connections[].target field uses Godot absolute path format (/root/Scene/Node) — convert to scene-root-relative (root/Node) before passing to connect/disconnect_signal. Returns: nodeType and signals[], each with name and current connections (signal/target/method). Errors if node not found.',
+      'List all signals defined on a node and their current connections. Use before connect_signal/disconnect_signal to verify signal/method names. The connections[].target field uses Godot absolute path format (/root/Scene/Node) - convert to scene-root-relative (root/Node) before passing to connect/disconnect_signal. Returns: nodeType and signals[], each with name and current connections (signal/target/method). Errors if node not found.',
     annotations: { readOnlyHint: true },
     inputSchema: {
       type: 'object',
@@ -264,7 +264,7 @@ export const nodeToolDefinitions: ToolDefinition[] = [
   {
     name: 'connect_signal',
     description:
-      'Connect a signal on a source node to a method on a target node, persisting the connection in the .tscn. Use after get_node_signals to confirm the signal name on the source and the method name on the target. Connecting the same signal+method pair twice creates a duplicate connection — call get_node_signals first if uncertain. Saves automatically. Returns a plain-text confirmation naming the source, signal, target, and method. Errors if the signal does not exist on the source node or the method does not exist on the target node.',
+      'Connect a signal on a source node to a method on a target node, persisting the connection in the .tscn. Use after get_node_signals to confirm the signal name on the source and the method name on the target. Connecting the same signal+method pair twice creates a duplicate connection - call get_node_signals first if uncertain. Saves automatically. Returns a plain-text confirmation naming the source, signal, target, and method. Errors if the signal does not exist on the source node or the method does not exist on the target node.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -319,10 +319,7 @@ export const nodeToolDefinitions: ToolDefinition[] = [
           description: 'Path to the target node from scene root (e.g. "root/Player")',
         },
         metaName: { type: 'string', description: 'Name of the metadata key to set' },
-        metaValue: {
-          description:
-            'Value of the metadata to set (boolean, number, string, Vector2, Vector3, Color)',
-        },
+        metaValue: { description: 'Value of the metadata to set (boolean, number, string, Vector2, Vector3, Color)' },
       },
       required: ['projectPath', 'scenePath', 'nodePath', 'metaName', 'metaValue'],
     },
@@ -342,8 +339,7 @@ export const nodeToolDefinitions: ToolDefinition[] = [
         },
         metaName: {
           type: 'string',
-          description:
-            'Optional name of the specific metadata key to retrieve. If not provided, retrieves all metadata.',
+          description: 'Optional name of the specific metadata key to retrieve. If not provided, retrieves all metadata.',
         },
       },
       required: ['projectPath', 'scenePath', 'nodePath'],
@@ -394,14 +390,12 @@ export const nodeToolDefinitions: ToolDefinition[] = [
         },
         sizeFlagsH: {
           type: 'string',
-          description:
-            'Horizontal size flags: "fill", "expand", "fill_expand", "shrink_center", "shrink_end"',
+          description: 'Horizontal size flags: "fill", "expand", "fill_expand", "shrink_center", "shrink_end"',
           enum: ['fill', 'expand', 'fill_expand', 'shrink_center', 'shrink_end'],
         },
         sizeFlagsV: {
           type: 'string',
-          description:
-            'Vertical size flags: "fill", "expand", "fill_expand", "shrink_center", "shrink_end"',
+          description: 'Vertical size flags: "fill", "expand", "fill_expand", "shrink_center", "shrink_end"',
           enum: ['fill', 'expand', 'fill_expand', 'shrink_center', 'shrink_end'],
         },
         margins: {
@@ -416,8 +410,7 @@ export const nodeToolDefinitions: ToolDefinition[] = [
         },
         separation: {
           type: 'integer',
-          description:
-            'Separation constant override (for BoxContainer, HBoxContainer, VBoxContainer)',
+          description: 'Separation constant override (for BoxContainer, HBoxContainer, VBoxContainer)',
         },
         growH: {
           type: 'string',
@@ -518,13 +511,11 @@ export const nodeToolDefinitions: ToolDefinition[] = [
         },
         meshFile: {
           type: 'string',
-          description:
-            'Path to a mesh resource or PackedScene resource to load (e.g. "res://models/car.glb")',
+          description: 'Path to a mesh resource or PackedScene resource to load (e.g. "res://models/car.glb")',
         },
         meshProperties: {
           type: 'object',
-          description:
-            'Properties to set on the primitive mesh resource (e.g. { "size": { "x": 2, "y": 2, "z": 2 } })',
+          description: 'Properties to set on the primitive mesh resource (e.g. { "size": { "x": 2, "y": 2, "z": 2 } })',
         },
         position: {
           type: 'object',
@@ -611,35 +602,19 @@ export const nodeToolDefinitions: ToolDefinition[] = [
       properties: {
         projectPath: { type: 'string', description: 'Path to the Godot project directory' },
         scenePath: { type: 'string', description: 'Scene file path relative to the project' },
-        parentPath: {
-          type: 'string',
-          description: 'Parent node path from scene root (default: root node)',
-        },
+        parentPath: { type: 'string', description: 'Parent node path from scene root (default: root node)' },
         name: { type: 'string', description: 'Name for the new RayCast node (default: "RayCast")' },
         dimension: {
           type: 'string',
-          description:
-            'Force space dimension: "2d" or "3d". If omitted, auto-detected from parent node.',
+          description: 'Force space dimension: "2d" or "3d". If omitted, auto-detected from parent node.',
           enum: ['2d', '3d'],
         },
         enabled: { type: 'boolean', description: 'Whether the raycast is enabled (default: true)' },
-        collisionMask: {
-          type: 'integer',
-          description: 'Collision mask bitmask to detect (default: 1)',
-        },
-        collideWithAreas: {
-          type: 'boolean',
-          description: 'Whether to detect Area collisions (default: false)',
-        },
-        collideWithBodies: {
-          type: 'boolean',
-          description: 'Whether to detect PhysicsBody collisions (default: true)',
-        },
+        collisionMask: { type: 'integer', description: 'Collision mask bitmask to detect (default: 1)' },
+        collideWithAreas: { type: 'boolean', description: 'Whether to detect Area collisions (default: false)' },
+        collideWithBodies: { type: 'boolean', description: 'Whether to detect PhysicsBody collisions (default: true)' },
         targetX: { type: 'number', description: 'Target offset X (default: 0.0)' },
-        targetY: {
-          type: 'number',
-          description: 'Target offset Y (default: 50.0 for 2D, -1.0 for 3D)',
-        },
+        targetY: { type: 'number', description: 'Target offset Y (default: 50.0 for 2D, -1.0 for 3D)' },
         targetZ: { type: 'number', description: 'Target offset Z (3D only, default: 0.0)' },
       },
       required: ['projectPath', 'scenePath'],
@@ -654,24 +629,14 @@ export const nodeToolDefinitions: ToolDefinition[] = [
       properties: {
         projectPath: { type: 'string', description: 'Path to the Godot project directory' },
         scenePath: { type: 'string', description: 'Scene file path relative to the project' },
-        parentPath: {
-          type: 'string',
-          description: 'Parent node path from scene root (default: root node)',
-        },
-        name: {
-          type: 'string',
-          description: 'Name for the Camera node (default: "Camera" or "Camera2D")',
-        },
+        parentPath: { type: 'string', description: 'Parent node path from scene root (default: root node)' },
+        name: { type: 'string', description: 'Name for the Camera node (default: "Camera" or "Camera2D")' },
         dimension: {
           type: 'string',
-          description:
-            'Force space dimension: "2d" or "3d". If omitted, auto-detected from parent node.',
+          description: 'Force space dimension: "2d" or "3d". If omitted, auto-detected from parent node.',
           enum: ['2d', '3d'],
         },
-        current: {
-          type: 'boolean',
-          description: 'Make the camera current (active view) in viewport (default: true)',
-        },
+        current: { type: 'boolean', description: 'Make the camera current (active view) in viewport (default: true)' },
         zoom: {
           type: 'object',
           description: '2D camera zoom factor Vector2 (e.g. { "x": 1.0, "y": 1.0 })',
@@ -696,8 +661,17 @@ export const nodeToolDefinitions: ToolDefinition[] = [
         },
         rotation: {
           type: 'object',
-          description:
-            'Camera rotation degrees Vector3 (3D only, e.g. { "x": -15, "y": 0, "z": 0 })',
+          description: 'Camera rotation degrees Vector3 (3D only, e.g. { "x": -15, "y": 0, "z": 0 })',
+          properties: {
+            x: { type: 'number' },
+            y: { type: 'number' },
+            z: { type: 'number' },
+          },
+          required: ['x', 'y', 'z'],
+        },
+        lookAt: {
+          type: 'object',
+          description: 'Optional Vector3 coordinate target to look at (3D only). Overrides rotation.',
           properties: {
             x: { type: 'number' },
             y: { type: 'number' },
@@ -718,24 +692,16 @@ export const nodeToolDefinitions: ToolDefinition[] = [
       properties: {
         projectPath: { type: 'string', description: 'Path to the Godot project directory' },
         scenePath: { type: 'string', description: 'Scene file path relative to the project' },
-        parentPath: {
-          type: 'string',
-          description: 'Parent Spatial node path from scene root (default: root node)',
-        },
-        name: {
-          type: 'string',
-          description: 'Name for the light node (default: matches light type or preset)',
-        },
+        parentPath: { type: 'string', description: 'Parent Spatial node path from scene root (default: root node)' },
+        name: { type: 'string', description: 'Name for the light node (default: matches light type or preset)' },
         lightType: {
           type: 'string',
-          description:
-            'Type of light: "DirectionalLight", "OmniLight", or "SpotLight" (default: "DirectionalLight")',
+          description: 'Type of light: "DirectionalLight", "OmniLight", or "SpotLight" (default: "DirectionalLight")',
           enum: ['DirectionalLight', 'OmniLight', 'SpotLight'],
         },
         preset: {
           type: 'string',
-          description:
-            'Preset light rig configuration: "sun" (Directional+Shadows), "indoor" (soft Omni), "dramatic" (bright Spot)',
+          description: 'Preset light rig configuration: "sun" (Directional+Shadows), "indoor" (soft Omni), "dramatic" (bright Spot)',
           enum: ['sun', 'indoor', 'dramatic'],
         },
         color: {
@@ -788,24 +754,16 @@ export const nodeToolDefinitions: ToolDefinition[] = [
       properties: {
         projectPath: { type: 'string', description: 'Path to the Godot project directory' },
         scenePath: { type: 'string', description: 'Scene file path relative to the project' },
-        parentPath: {
-          type: 'string',
-          description: 'Parent node path from scene root (default: root node)',
-        },
-        name: {
-          type: 'string',
-          description: 'Name for the WorldEnvironment node (default: "WorldEnvironment")',
-        },
+        parentPath: { type: 'string', description: 'Parent node path from scene root (default: root node)' },
+        name: { type: 'string', description: 'Name for the WorldEnvironment node (default: "WorldEnvironment")' },
         ambientMode: {
           type: 'string',
-          description:
-            'Environment background mode: "sky", "color", "canvas", "clear_color" (default: "color")',
+          description: 'Environment background mode: "sky", "color", "canvas", "clear_color" (default: "color")',
           enum: ['sky', 'color', 'canvas', 'clear_color'],
         },
         ambientColor: {
           type: 'object',
-          description:
-            'Ambient light or background color (e.g. { "r": 0.2, "g": 0.2, "b": 0.2, "a": 1.0 })',
+          description: 'Ambient light or background color (e.g. { "r": 0.2, "g": 0.2, "b": 0.2, "a": 1.0 })',
           properties: {
             r: { type: 'number' },
             g: { type: 'number' },
@@ -817,59 +775,35 @@ export const nodeToolDefinitions: ToolDefinition[] = [
         ambientEnergy: { type: 'number', description: 'Ambient light energy/intensity multiplier' },
         skyType: {
           type: 'string',
-          description:
-            'Sky resource type to instantiate: "ProceduralSky" or "none" (default: "none")',
+          description: 'Sky resource type to instantiate: "ProceduralSky" or "none" (default: "none")',
           enum: ['ProceduralSky', 'none'],
         },
         skyTopColor: {
           type: 'object',
           description: 'ProceduralSky top/sky color',
-          properties: {
-            r: { type: 'number' },
-            g: { type: 'number' },
-            b: { type: 'number' },
-            a: { type: 'number' },
-          },
+          properties: { r: { type: 'number' }, g: { type: 'number' }, b: { type: 'number' }, a: { type: 'number' } },
           required: ['r', 'g', 'b', 'a'],
         },
         skyHorizonColor: {
           type: 'object',
           description: 'ProceduralSky horizon color',
-          properties: {
-            r: { type: 'number' },
-            g: { type: 'number' },
-            b: { type: 'number' },
-            a: { type: 'number' },
-          },
+          properties: { r: { type: 'number' }, g: { type: 'number' }, b: { type: 'number' }, a: { type: 'number' } },
           required: ['r', 'g', 'b', 'a'],
         },
         groundBottomColor: {
           type: 'object',
           description: 'ProceduralSky ground bottom color',
-          properties: {
-            r: { type: 'number' },
-            g: { type: 'number' },
-            b: { type: 'number' },
-            a: { type: 'number' },
-          },
+          properties: { r: { type: 'number' }, g: { type: 'number' }, b: { type: 'number' }, a: { type: 'number' } },
           required: ['r', 'g', 'b', 'a'],
         },
         groundHorizonColor: {
           type: 'object',
           description: 'ProceduralSky ground horizon color',
-          properties: {
-            r: { type: 'number' },
-            g: { type: 'number' },
-            b: { type: 'number' },
-            a: { type: 'number' },
-          },
+          properties: { r: { type: 'number' }, g: { type: 'number' }, b: { type: 'number' }, a: { type: 'number' } },
           required: ['r', 'g', 'b', 'a'],
         },
         glowEnabled: { type: 'boolean', description: 'Enable glow/bloom post-processing effect' },
-        ssaoEnabled: {
-          type: 'boolean',
-          description: 'Enable Screen Space Ambient Occlusion (3D only)',
-        },
+        ssaoEnabled: { type: 'boolean', description: 'Enable Screen Space Ambient Occlusion (3D only)' },
         ssrEnabled: { type: 'boolean', description: 'Enable Screen Space Reflections (3D only)' },
         fogEnabled: { type: 'boolean', description: 'Enable fog rendering effect' },
       },
@@ -885,37 +819,18 @@ export const nodeToolDefinitions: ToolDefinition[] = [
       properties: {
         projectPath: { type: 'string', description: 'Path to the Godot project directory' },
         scenePath: { type: 'string', description: 'Scene file path relative to the project' },
-        parentPath: {
-          type: 'string',
-          description: 'Parent node path for the Navigation node (default: root node)',
-        },
-        navigationName: {
-          type: 'string',
-          description: 'Name of the Navigation node (default: "Navigation")',
-        },
-        name: {
-          type: 'string',
-          description:
-            'Name of the NavigationMeshInstance node (default: "NavigationMeshInstance")',
-        },
+        parentPath: { type: 'string', description: 'Parent node path for the Navigation node (default: root node)' },
+        navigationName: { type: 'string', description: 'Name of the Navigation node (default: "Navigation")' },
+        name: { type: 'string', description: 'Name of the NavigationMeshInstance node (default: "NavigationMeshInstance")' },
         cellSize: { type: 'number', description: 'Cell size for navigation mesh generation' },
         cellHeight: { type: 'number', description: 'Cell height for navigation mesh generation' },
         agentHeight: { type: 'number', description: 'Agent height for navigation mesh generation' },
         agentRadius: { type: 'number', description: 'Agent radius for navigation mesh generation' },
-        agentMaxClimb: {
-          type: 'number',
-          description: 'Agent max climb height for navigation mesh generation',
-        },
+        agentMaxClimb: { type: 'number', description: 'Agent max climb height for navigation mesh generation' },
         agentMaxSlope: { type: 'number', description: 'Agent max slope angle in degrees' },
         setupAgent: { type: 'boolean', description: 'Whether to also setup a NavigationAgent' },
-        agentParentPath: {
-          type: 'string',
-          description: 'Parent node path for the NavigationAgent',
-        },
-        agentName: {
-          type: 'string',
-          description: 'Name of the NavigationAgent node (default: "NavigationAgent")',
-        },
+        agentParentPath: { type: 'string', description: 'Parent node path for the NavigationAgent' },
+        agentName: { type: 'string', description: 'Name of the NavigationAgent node (default: "NavigationAgent")' },
       },
       required: ['projectPath', 'scenePath'],
     },
@@ -929,14 +844,8 @@ export const nodeToolDefinitions: ToolDefinition[] = [
       properties: {
         projectPath: { type: 'string', description: 'Path to the Godot project directory' },
         scenePath: { type: 'string', description: 'Scene file path relative to the project' },
-        parentPath: {
-          type: 'string',
-          description: 'Parent Spatial node path (default: root node)',
-        },
-        name: {
-          type: 'string',
-          description: 'Name for the new CPUParticles node (default: "CPUParticles")',
-        },
+        parentPath: { type: 'string', description: 'Parent Spatial node path (default: root node)' },
+        name: { type: 'string', description: 'Name for the new CPUParticles node (default: "CPUParticles")' },
         preset: {
           type: 'string',
           description: 'Particle effect preset name: "fire", "smoke", "sparks"',
@@ -978,18 +887,9 @@ export const nodeToolDefinitions: ToolDefinition[] = [
       properties: {
         projectPath: { type: 'string', description: 'Path to the Godot project directory' },
         scenePath: { type: 'string', description: 'Scene file path relative to the project' },
-        parentPath: {
-          type: 'string',
-          description: 'Parent node path from scene root (default: root node)',
-        },
-        name: {
-          type: 'string',
-          description: 'Name of the AnimationTree node (default: "AnimationTree")',
-        },
-        animPlayerPath: {
-          type: 'string',
-          description: 'Relative path to the AnimationPlayer node',
-        },
+        parentPath: { type: 'string', description: 'Parent node path from scene root (default: root node)' },
+        name: { type: 'string', description: 'Name of the AnimationTree node (default: "AnimationTree")' },
+        animPlayerPath: { type: 'string', description: 'Relative path to the AnimationPlayer node' },
         states: {
           type: 'array',
           items: { type: 'string' },
@@ -1003,18 +903,12 @@ export const nodeToolDefinitions: ToolDefinition[] = [
             properties: {
               from: { type: 'string', description: 'Source state name' },
               to: { type: 'string', description: 'Target state name' },
-              autoAdvance: {
-                type: 'boolean',
-                description: 'Whether to transition automatically when finished',
-              },
+              autoAdvance: { type: 'boolean', description: 'Whether to transition automatically when finished' },
             },
             required: ['from', 'to'],
           },
         },
-        active: {
-          type: 'boolean',
-          description: 'Whether the AnimationTree is active (default: true)',
-        },
+        active: { type: 'boolean', description: 'Whether the AnimationTree is active (default: true)' },
       },
       required: ['projectPath', 'scenePath'],
     },
@@ -1047,20 +941,13 @@ export const nodeToolDefinitions: ToolDefinition[] = [
       properties: {
         projectPath: { type: 'string', description: 'Path to the Godot project directory' },
         scenePath: { type: 'string', description: 'Scene file path relative to the project' },
-        parentPath: {
-          type: 'string',
-          description: 'Parent Spatial node path (default: root node)',
-        },
+        parentPath: { type: 'string', description: 'Parent Spatial node path (default: root node)' },
         jointType: {
           type: 'string',
-          description:
-            'Type of joint to create: PinJoint, HingeJoint, SliderJoint, ConeTwistJoint, Generic6DOFJoint',
+          description: 'Type of joint to create: PinJoint, HingeJoint, SliderJoint, ConeTwistJoint, Generic6DOFJoint',
           enum: ['PinJoint', 'HingeJoint', 'SliderJoint', 'ConeTwistJoint', 'Generic6DOFJoint'],
         },
-        name: {
-          type: 'string',
-          description: 'Name of the Joint node (default: matches jointType)',
-        },
+        name: { type: 'string', description: 'Name of the Joint node (default: matches jointType)' },
         nodeA: { type: 'string', description: 'Path to physics body A node' },
         nodeB: { type: 'string', description: 'Path to physics body B node' },
         position: {
@@ -1077,6 +964,40 @@ export const nodeToolDefinitions: ToolDefinition[] = [
         },
       },
       required: ['projectPath', 'scenePath'],
+    },
+  },
+  {
+    name: 'generate_gui_hierarchy',
+    description:
+      'Headlessly compiles and generates a deep recursive Control-based GUI hierarchy under a target parent node in a single atomic transaction. Supports custom properties, layout presets, minimum sizes, and margins for each node. Returns: information about the created GUI hierarchy including success status, resolved paths, and the name of the root generated node.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        projectPath: { type: 'string', description: 'Path to the Godot project directory' },
+        scenePath: {
+          type: 'string',
+          description: 'Scene file path relative to the project (e.g. "scenes/main.tscn")',
+        },
+        parentPath: {
+          type: 'string',
+          description: 'Parent Control node path from scene root (e.g. "root/CanvasLayer", defaults to "root")',
+        },
+        hierarchy: {
+          type: 'object',
+          description: 'Recursive dictionary describing the GUI tree hierarchy to build. Each node object contains: type (e.g., "Panel", "Label", "MarginContainer"), name, anchorPreset ("full_rect", "center", etc.), margins (object with left, top, right, bottom), minSize (Vector2-like {x, y}), properties (key-value dictionary), and children (array of node objects).',
+        },
+      },
+      required: ['projectPath', 'scenePath', 'hierarchy'],
+    },
+    outputSchema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        scene_path: { type: 'string' },
+        parent_path: { type: 'string' },
+        root_node_name: { type: 'string' },
+        root_node_path: { type: 'string' },
+      },
     },
   },
 ];
@@ -1354,14 +1275,10 @@ export async function handleSetNodeMetadata(runner: GodotRunner, args: Operation
     return createErrorResponse('Valid nodePath is required', ['Provide the target node path']);
   }
   if (!args.metaName || typeof args.metaName !== 'string' || args.metaName.trim() === '') {
-    return createErrorResponse('Valid metaName is required', [
-      'Provide a non-empty string for the metadata key',
-    ]);
+    return createErrorResponse('Valid metaName is required', ['Provide a non-empty string for the metadata key']);
   }
   if (args.metaValue === undefined) {
-    return createErrorResponse('metaValue is required', [
-      'Provide a value to set for the metadata key',
-    ]);
+    return createErrorResponse('metaValue is required', ['Provide a value to set for the metadata key']);
   }
 
   const params = {
@@ -1446,9 +1363,7 @@ export async function handleSetupCollision(runner: GodotRunner, args: OperationP
   if ('isError' in v) return v;
 
   if (!args.nodePath || !validateNodePath(args.nodePath as string)) {
-    return createErrorResponse('Valid nodePath is required', [
-      'Provide the physics body or area node path',
-    ]);
+    return createErrorResponse('Valid nodePath is required', ['Provide the physics body or area node path']);
   }
   if (!args.shape || typeof args.shape !== 'string' || args.shape.trim() === '') {
     return createErrorResponse('shape is required', [
@@ -1525,9 +1440,7 @@ export async function handleSetPhysicsLayers(runner: GodotRunner, args: Operatio
   if ('isError' in v) return v;
 
   if (!args.nodePath || !validateNodePath(args.nodePath as string)) {
-    return createErrorResponse('Valid nodePath is required', [
-      'Provide the target node path (e.g. "root/Player")',
-    ]);
+    return createErrorResponse('Valid nodePath is required', ['Provide the target node path (e.g. "root/Player")']);
   }
   if (args.collisionLayer === undefined && args.collisionMask === undefined) {
     return createErrorResponse('collisionLayer and/or collisionMask are required', [
@@ -1572,9 +1485,7 @@ export async function handleGetPhysicsLayers(runner: GodotRunner, args: Operatio
   if ('isError' in v) return v;
 
   if (!args.nodePath || !validateNodePath(args.nodePath as string)) {
-    return createErrorResponse('Valid nodePath is required', [
-      'Provide the target node path (e.g. "root/Player")',
-    ]);
+    return createErrorResponse('Valid nodePath is required', ['Provide the target node path (e.g. "root/Player")']);
   }
 
   const params = {
@@ -1618,9 +1529,14 @@ export async function handleAddRaycast(runner: GodotRunner, args: OperationParam
   if (args.targetY !== undefined) params.targetY = args.targetY;
   if (args.targetZ !== undefined) params.targetZ = args.targetZ;
 
-  return executeSceneOp(runner, 'add_raycast', params, v.projectPath, 'Failed to add RayCast', [
-    'Check that the parent node exists and parameters are valid',
-  ]);
+  return executeSceneOp(
+    runner,
+    'add_raycast',
+    params,
+    v.projectPath,
+    'Failed to add RayCast',
+    ['Check that the parent node exists and parameters are valid'],
+  );
 }
 
 export async function handleSetupCamera(runner: GodotRunner, args: OperationParams) {
@@ -1648,10 +1564,16 @@ export async function handleSetupCamera(runner: GodotRunner, args: OperationPara
   if (args.far !== undefined) params.far = args.far;
   if (args.position !== undefined) params.position = args.position;
   if (args.rotation !== undefined) params.rotation = args.rotation;
+  if (args.lookAt !== undefined) params.lookAt = args.lookAt;
 
-  return executeSceneOp(runner, 'setup_camera', params, v.projectPath, 'Failed to setup Camera', [
-    'Check parent node and that camera properties are valid',
-  ]);
+  return executeSceneOp(
+    runner,
+    'setup_camera',
+    params,
+    v.projectPath,
+    'Failed to setup Camera',
+    ['Check parent node and that camera properties are valid'],
+  );
 }
 
 export async function handleSetupLighting(runner: GodotRunner, args: OperationParams) {
@@ -1679,8 +1601,7 @@ export async function handleSetupLighting(runner: GodotRunner, args: OperationPa
   if (args.range !== undefined) params.range = args.range;
   if (args.attenuation !== undefined) params.attenuation = args.attenuation;
   if (args.spotAngle !== undefined) params.spotAngle = args.spotAngle;
-  if (args.spotAngleAttenuation !== undefined)
-    params.spotAngleAttenuation = args.spotAngleAttenuation;
+  if (args.spotAngleAttenuation !== undefined) params.spotAngleAttenuation = args.spotAngleAttenuation;
   if (args.position !== undefined) params.position = args.position;
   if (args.rotation !== undefined) params.rotation = args.rotation;
 
@@ -1906,3 +1827,39 @@ export async function handleSetupJoint3D(runner: GodotRunner, args: OperationPar
     ['Ensure parent node is a Spatial and node paths A/B refer to valid physics bodies'],
   );
 }
+
+export async function handleGenerateGuiHierarchy(runner: GodotRunner, args: OperationParams) {
+  args = normalizeParameters(args);
+  const v = validateSceneArgs(args);
+  if ('isError' in v) return v;
+
+  if (args.parentPath && !validateNodePath(args.parentPath as string)) {
+    return createErrorResponse('Invalid parentPath', [
+      'Provide a scene-tree path without ".." (e.g. "root/CanvasLayer")',
+    ]);
+  }
+
+  if (!args.hierarchy || typeof args.hierarchy !== 'object') {
+    return createErrorResponse('Valid hierarchy object is required', [
+      'Provide a recursive dictionary describing the GUI tree layout',
+    ]);
+  }
+
+  const params: OperationParams = {
+    scenePath: args.scenePath,
+    hierarchy: args.hierarchy,
+  };
+
+  if (args.parentPath !== undefined) params.parentPath = args.parentPath;
+
+  return executeSceneOp(
+    runner,
+    'generate_gui_hierarchy',
+    params,
+    v.projectPath,
+    'Failed to generate GUI hierarchy',
+    ['Check that parent node exists and GUI hierarchy description is correct'],
+  );
+}
+
+

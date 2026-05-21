@@ -23,8 +23,7 @@ export const scriptToolDefinitions: ToolDefinition[] = [
         projectPath: { type: 'string', description: 'Path to the Godot project directory' },
         scriptPath: {
           type: 'string',
-          description:
-            'Path to the GDScript file relative to the project root (e.g. "scripts/player.gd")',
+          description: 'Path to the GDScript file relative to the project root (e.g. "scripts/player.gd")',
         },
       },
       required: ['projectPath', 'scriptPath'],
@@ -39,23 +38,11 @@ export const scriptToolDefinitions: ToolDefinition[] = [
       type: 'object',
       properties: {
         projectPath: { type: 'string', description: 'Path to the Godot project directory' },
-        scriptPath: {
-          type: 'string',
-          description: 'Path to the GDScript file relative to the project root',
-        },
+        scriptPath: { type: 'string', description: 'Path to the GDScript file relative to the project root' },
         varName: { type: 'string', description: 'Name of the variable to add' },
-        type: {
-          type: 'string',
-          description: 'Optional type annotation (e.g. "float", "int", "String")',
-        },
-        defaultValue: {
-          type: 'string',
-          description: 'Optional default value expression (e.g. "5.0", "true", "\\"hello\\"")',
-        },
-        exported: {
-          type: 'boolean',
-          description: 'Whether to export the variable (Godot 3 export keyword)',
-        },
+        type: { type: 'string', description: 'Optional type annotation (e.g. "float", "int", "String")' },
+        defaultValue: { type: 'string', description: 'Optional default value expression (e.g. "5.0", "true", "\\"hello\\"")' },
+        exported: { type: 'boolean', description: 'Whether to export the variable (Godot 3 export keyword)' },
       },
       required: ['projectPath', 'scriptPath', 'varName'],
     },
@@ -69,16 +56,9 @@ export const scriptToolDefinitions: ToolDefinition[] = [
       type: 'object',
       properties: {
         projectPath: { type: 'string', description: 'Path to the Godot project directory' },
-        scriptPath: {
-          type: 'string',
-          description: 'Path to the GDScript file relative to the project root',
-        },
+        scriptPath: { type: 'string', description: 'Path to the GDScript file relative to the project root' },
         signalName: { type: 'string', description: 'Name of the signal to add' },
-        params: {
-          type: 'string',
-          description:
-            'Optional signal parameter names as a comma-separated list (e.g. "body, value")',
-        },
+        params: { type: 'string', description: 'Optional signal parameter names as a comma-separated list (e.g. "body, value")' },
       },
       required: ['projectPath', 'scriptPath', 'signalName'],
     },
@@ -92,25 +72,11 @@ export const scriptToolDefinitions: ToolDefinition[] = [
       type: 'object',
       properties: {
         projectPath: { type: 'string', description: 'Path to the Godot project directory' },
-        scriptPath: {
-          type: 'string',
-          description: 'Path to the GDScript file relative to the project root',
-        },
+        scriptPath: { type: 'string', description: 'Path to the GDScript file relative to the project root' },
         funcName: { type: 'string', description: 'Name of the function to add' },
-        params: {
-          type: 'string',
-          description:
-            'Optional function parameter list string (e.g. "delta: float, speed := 5.0")',
-        },
-        body: {
-          type: 'string',
-          description:
-            'Body code of the function. Standard lines, will be tab-indented automatically.',
-        },
-        returnType: {
-          type: 'string',
-          description: 'Optional return type annotation (e.g. "void", "bool")',
-        },
+        params: { type: 'string', description: 'Optional function parameter list string (e.g. "delta: float, speed := 5.0")' },
+        body: { type: 'string', description: 'Body code of the function. Standard lines, will be tab-indented automatically.' },
+        returnType: { type: 'string', description: 'Optional return type annotation (e.g. "void", "bool")' },
         isStatic: { type: 'boolean', description: 'Whether to declare the function as static' },
       },
       required: ['projectPath', 'scriptPath', 'funcName', 'body'],
@@ -125,10 +91,7 @@ export const scriptToolDefinitions: ToolDefinition[] = [
       type: 'object',
       properties: {
         projectPath: { type: 'string', description: 'Path to the Godot project directory' },
-        scriptPath: {
-          type: 'string',
-          description: 'Path to the GDScript file relative to the project root',
-        },
+        scriptPath: { type: 'string', description: 'Path to the GDScript file relative to the project root' },
         funcName: { type: 'string', description: 'Name of the function to remove' },
       },
       required: ['projectPath', 'scriptPath', 'funcName'],
@@ -237,10 +200,7 @@ function insertAtTopLevel(content: string, declaration: string, kind: 'signal' |
     if (t.startsWith('signal ') && kind === 'signal') {
       insertAfter = i;
     }
-    if (
-      (t.startsWith('var ') || t.startsWith('export ') || t.startsWith('const ')) &&
-      kind === 'var'
-    ) {
+    if ((t.startsWith('var ') || t.startsWith('export ') || t.startsWith('const ')) && kind === 'var') {
       insertAfter = i;
     }
     if (t.match(/^(?:static\s+)?func\s+/) && !lines[i].match(/^\s/)) {
@@ -263,18 +223,13 @@ function insertAtTopLevel(content: string, declaration: string, kind: 'signal' |
 
 // --- Handlers ---
 
-export async function handleListScriptElements(
-  _runner: any,
-  args: OperationParams,
-): Promise<ToolResponse> {
+export async function handleListScriptElements(_runner: any, args: OperationParams): Promise<ToolResponse> {
   args = normalizeParameters(args);
   const v = validateProjectArgs(args);
   if ('isError' in v) return v;
 
   if (!args.scriptPath || typeof args.scriptPath !== 'string') {
-    return createErrorResponse('scriptPath is required', [
-      'Provide a script path inside the project root',
-    ]);
+    return createErrorResponse('scriptPath is required', ['Provide a script path inside the project root']);
   }
   if (!validateSubPath(v.projectPath, args.scriptPath)) {
     return createErrorResponse('Invalid scriptPath', ['Path must reside within the project root']);
@@ -291,26 +246,19 @@ export async function handleListScriptElements(
   }
 }
 
-export async function handleAddScriptVariable(
-  _runner: any,
-  args: OperationParams,
-): Promise<ToolResponse> {
+export async function handleAddScriptVariable(_runner: any, args: OperationParams): Promise<ToolResponse> {
   args = normalizeParameters(args);
   const v = validateProjectArgs(args);
   if ('isError' in v) return v;
 
   if (!args.scriptPath || typeof args.scriptPath !== 'string') {
-    return createErrorResponse('scriptPath is required', [
-      'Provide a script path inside the project',
-    ]);
+    return createErrorResponse('scriptPath is required', ['Provide a script path inside the project']);
   }
   if (!validateSubPath(v.projectPath, args.scriptPath)) {
     return createErrorResponse('Invalid scriptPath', ['Path must reside within the project root']);
   }
   if (!args.varName || typeof args.varName !== 'string' || !/^\w+$/.test(args.varName)) {
-    return createErrorResponse('Valid varName is required', [
-      'Provide a valid GDScript variable name',
-    ]);
+    return createErrorResponse('Valid varName is required', ['Provide a valid GDScript variable name']);
   }
 
   try {
@@ -320,11 +268,7 @@ export async function handleAddScriptVariable(
     }
     const content = readFileSync(fsPath, 'utf8');
 
-    if (
-      new RegExp(`^(export\\s*(?:\\([^)]*\\))?\\s+)?(?:var|const)\\s+${args.varName}\\b`, 'm').test(
-        content,
-      )
-    ) {
+    if (new RegExp(`^(export\\s*(?:\\([^)]*\\))?\\s+)?(?:var|const)\\s+${args.varName}\\b`, 'm').test(content)) {
       return createErrorResponse(`Variable "${args.varName}" already exists in the script`);
     }
 
@@ -338,36 +282,25 @@ export async function handleAddScriptVariable(
     const newContent = insertAtTopLevel(content, decl, 'var');
     writeFileSync(fsPath, newContent, 'utf8');
 
-    return {
-      content: [
-        { type: 'text', text: `Successfully added variable "${decl}" to ${args.scriptPath}` },
-      ],
-    };
+    return { content: [{ type: 'text', text: `Successfully added variable "${decl}" to ${args.scriptPath}` }] };
   } catch (error: unknown) {
     return createErrorResponse(`Failed to add variable: ${getErrorMessage(error)}`);
   }
 }
 
-export async function handleAddScriptSignal(
-  _runner: any,
-  args: OperationParams,
-): Promise<ToolResponse> {
+export async function handleAddScriptSignal(_runner: any, args: OperationParams): Promise<ToolResponse> {
   args = normalizeParameters(args);
   const v = validateProjectArgs(args);
   if ('isError' in v) return v;
 
   if (!args.scriptPath || typeof args.scriptPath !== 'string') {
-    return createErrorResponse('scriptPath is required', [
-      'Provide a script path inside the project',
-    ]);
+    return createErrorResponse('scriptPath is required', ['Provide a script path inside the project']);
   }
   if (!validateSubPath(v.projectPath, args.scriptPath)) {
     return createErrorResponse('Invalid scriptPath', ['Path must reside within the project root']);
   }
   if (!args.signalName || typeof args.signalName !== 'string' || !/^\w+$/.test(args.signalName)) {
-    return createErrorResponse('Valid signalName is required', [
-      'Provide a valid GDScript signal name',
-    ]);
+    return createErrorResponse('Valid signalName is required', ['Provide a valid GDScript signal name']);
   }
 
   try {
@@ -381,44 +314,32 @@ export async function handleAddScriptSignal(
       return createErrorResponse(`Signal "${args.signalName}" already exists in the script`);
     }
 
-    const decl =
-      args.params && (args.params as string).trim()
-        ? `signal ${args.signalName}(${args.params})`
-        : `signal ${args.signalName}`;
+    const decl = args.params && (args.params as string).trim()
+      ? `signal ${args.signalName}(${args.params})`
+      : `signal ${args.signalName}`;
 
     const newContent = insertAtTopLevel(content, decl, 'signal');
     writeFileSync(fsPath, newContent, 'utf8');
 
-    return {
-      content: [
-        { type: 'text', text: `Successfully added signal "${decl}" to ${args.scriptPath}` },
-      ],
-    };
+    return { content: [{ type: 'text', text: `Successfully added signal "${decl}" to ${args.scriptPath}` }] };
   } catch (error: unknown) {
     return createErrorResponse(`Failed to add signal: ${getErrorMessage(error)}`);
   }
 }
 
-export async function handleAddScriptFunction(
-  _runner: any,
-  args: OperationParams,
-): Promise<ToolResponse> {
+export async function handleAddScriptFunction(_runner: any, args: OperationParams): Promise<ToolResponse> {
   args = normalizeParameters(args);
   const v = validateProjectArgs(args);
   if ('isError' in v) return v;
 
   if (!args.scriptPath || typeof args.scriptPath !== 'string') {
-    return createErrorResponse('scriptPath is required', [
-      'Provide a script path inside the project',
-    ]);
+    return createErrorResponse('scriptPath is required', ['Provide a script path inside the project']);
   }
   if (!validateSubPath(v.projectPath, args.scriptPath)) {
     return createErrorResponse('Invalid scriptPath', ['Path must reside within the project root']);
   }
   if (!args.funcName || typeof args.funcName !== 'string' || !/^\w+$/.test(args.funcName)) {
-    return createErrorResponse('Valid funcName is required', [
-      'Provide a valid GDScript function name',
-    ]);
+    return createErrorResponse('Valid funcName is required', ['Provide a valid GDScript function name']);
   }
   if (args.body === undefined || typeof args.body !== 'string') {
     return createErrorResponse('Function body is required', ['Provide a function body string']);
@@ -451,31 +372,19 @@ export async function handleAddScriptFunction(
     const newContent = existingTrimmed + '\n\n' + header + '\n' + bodyLines.join('\n') + '\n';
     writeFileSync(fsPath, newContent, 'utf8');
 
-    return {
-      content: [
-        {
-          type: 'text',
-          text: `Successfully appended function "${args.funcName}" to ${args.scriptPath}`,
-        },
-      ],
-    };
+    return { content: [{ type: 'text', text: `Successfully appended function "${args.funcName}" to ${args.scriptPath}` }] };
   } catch (error: unknown) {
     return createErrorResponse(`Failed to add function: ${getErrorMessage(error)}`);
   }
 }
 
-export async function handleRemoveScriptFunction(
-  _runner: any,
-  args: OperationParams,
-): Promise<ToolResponse> {
+export async function handleRemoveScriptFunction(_runner: any, args: OperationParams): Promise<ToolResponse> {
   args = normalizeParameters(args);
   const v = validateProjectArgs(args);
   if ('isError' in v) return v;
 
   if (!args.scriptPath || typeof args.scriptPath !== 'string') {
-    return createErrorResponse('scriptPath is required', [
-      'Provide a script path inside the project',
-    ]);
+    return createErrorResponse('scriptPath is required', ['Provide a script path inside the project']);
   }
   if (!validateSubPath(v.projectPath, args.scriptPath)) {
     return createErrorResponse('Invalid scriptPath', ['Path must reside within the project root']);
@@ -523,14 +432,7 @@ export async function handleRemoveScriptFunction(
     const newLines = [...lines.slice(0, removeFrom), ...lines.slice(endIdx)];
     writeFileSync(fsPath, newLines.join('\n'), 'utf8');
 
-    return {
-      content: [
-        {
-          type: 'text',
-          text: `Successfully removed function "${args.funcName}" from ${args.scriptPath}`,
-        },
-      ],
-    };
+    return { content: [{ type: 'text', text: `Successfully removed function "${args.funcName}" from ${args.scriptPath}` }] };
   } catch (error: unknown) {
     return createErrorResponse(`Failed to remove function: ${getErrorMessage(error)}`);
   }

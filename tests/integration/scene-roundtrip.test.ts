@@ -141,7 +141,7 @@ describe('add_node round-trip', () => {
       // The Godot side should have reported the parent-not-found error to stderr.
       expect(stderrSeen.toLowerCase()).toContain('parent node not found');
 
-      // The scene must not have been mutated — no phantom Orphan node entry.
+      // The scene must not have been mutated - no phantom Orphan node entry.
       const tscnAfter = readFileSync(join(tmpProject, 'main.tscn'), 'utf8');
       expect(tscnAfter).not.toMatch(/\[node name="Orphan"/);
       // Belt-and-suspenders: the file should be byte-identical to the original.
@@ -249,7 +249,7 @@ describe('delete_nodes round-trip', () => {
     'get_scene_tree no longer lists the node after delete_nodes',
     async () => {
       // Fixture invariant: tests/fixtures/godot-project/main.tscn ships with a Sprite
-      // child of the root Node2D — fixture.test.ts guards this shape.
+      // child of the root Node2D - fixture.test.ts guards this shape.
       await runner.executeOperation(
         'delete_nodes',
         { scenePath: 'main.tscn', nodePaths: ['root/Sprite'] },
@@ -411,7 +411,7 @@ describe('load_sprite rejects unimported textures with a clear error (Bug #4)', 
         errorMessage = err instanceof Error ? err.message : String(err);
       }
 
-      // Either a thrown error or a stderr message — but NOT silent success.
+      // Either a thrown error or a stderr message - but NOT silent success.
       // Tolerate either the new explicit "resource_path" / "Texture" guard
       // message, or Godot's lower-level "No loader found" / "Failed to load
       // texture" error.

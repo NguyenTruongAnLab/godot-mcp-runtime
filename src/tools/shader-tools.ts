@@ -1,11 +1,6 @@
 import { existsSync, writeFileSync } from 'fs';
 import { join } from 'path';
-import type {
-  GodotRunner,
-  OperationParams,
-  ToolDefinition,
-  ToolResponse,
-} from '../utils/godot-runner.js';
+import type { GodotRunner, OperationParams, ToolDefinition, ToolResponse } from '../utils/godot-runner.js';
 import {
   normalizeParameters,
   validateProjectArgs,
@@ -29,8 +24,7 @@ export const shaderToolDefinitions: ToolDefinition[] = [
         projectPath: { type: 'string', description: 'Path to the Godot project directory' },
         shaderPath: {
           type: 'string',
-          description:
-            'Destination path for the shader file relative to the project root (e.g. "shaders/neon.shader")',
+          description: 'Destination path for the shader file relative to the project root (e.g. "shaders/neon.shader")',
         },
         shaderType: {
           type: 'string',
@@ -39,8 +33,7 @@ export const shaderToolDefinitions: ToolDefinition[] = [
         },
         shaderCode: {
           type: 'string',
-          description:
-            'Complete custom GLSL shader code block. If not provided, a default template is written.',
+          description: 'Complete custom GLSL shader code block. If not provided, a default template is written.',
         },
       },
       required: ['projectPath', 'shaderPath'],
@@ -65,8 +58,7 @@ export const shaderToolDefinitions: ToolDefinition[] = [
         },
         shaderParams: {
           type: 'object',
-          description:
-            'Optional uniform parameters to configure on the ShaderMaterial (e.g., {"color_tint": {"r":1,"g":0,"b":0}, "speed": 2.5})',
+          description: 'Optional uniform parameters to configure on the ShaderMaterial (e.g., {"color_tint": {"r":1,"g":0,"b":0}, "speed": 2.5})',
         },
       },
       required: ['projectPath', 'scenePath', 'nodePath', 'shaderPath'],
@@ -74,10 +66,7 @@ export const shaderToolDefinitions: ToolDefinition[] = [
   },
 ];
 
-export async function handleCreateShaderResource(
-  _runner: any,
-  args: OperationParams,
-): Promise<ToolResponse> {
+export async function handleCreateShaderResource(_runner: any, args: OperationParams): Promise<ToolResponse> {
   args = normalizeParameters(args);
   const v = validateProjectArgs(args);
   if ('isError' in v) return v;
@@ -125,10 +114,7 @@ void fragment() {
   }
 }
 
-export async function handleApplyShaderMaterial(
-  runner: GodotRunner,
-  args: OperationParams,
-): Promise<ToolResponse> {
+export async function handleApplyShaderMaterial(runner: GodotRunner, args: OperationParams): Promise<ToolResponse> {
   args = normalizeParameters(args);
   const v = validateSceneArgs(args);
   if ('isError' in v) return v;
@@ -140,9 +126,7 @@ export async function handleApplyShaderMaterial(
     return createErrorResponse('shaderPath is required', ['Provide a valid shader path']);
   }
 
-  const rel = (args.shaderPath as string).startsWith('res://')
-    ? (args.shaderPath as string).slice(6)
-    : (args.shaderPath as string);
+  const rel = (args.shaderPath as string).startsWith('res://') ? (args.shaderPath as string).slice(6) : (args.shaderPath as string);
   const shaderFullPath = join(v.projectPath, rel);
   if (!existsSync(shaderFullPath)) {
     return createErrorResponse(`Shader file does not exist: ${args.shaderPath}`, [
@@ -165,6 +149,6 @@ export async function handleApplyShaderMaterial(
     params,
     v.projectPath,
     'Failed to apply shader material',
-    ['Ensure the node exists and is compatible with materials', 'Verify scene and shader paths'],
+    ['Ensure the node exists and is compatible with materials', 'Verify scene and shader paths']
   );
 }

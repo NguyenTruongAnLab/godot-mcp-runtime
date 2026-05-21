@@ -18,6 +18,7 @@ export default defineConfig({
         test: {
           name: 'unit',
           include: ['tests/unit/**/*.test.ts', 'src/**/*.test.ts'],
+          fileParallelism: false,
         },
       },
       {

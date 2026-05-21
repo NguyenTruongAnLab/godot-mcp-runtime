@@ -2,7 +2,7 @@
  * Direct unit tests for executeSceneOp.
  *
  * Currently only covered transitively via the 15 scene/node mutation
- * handlers. A direct test localizes the failure when its contract drifts —
+ * handlers. A direct test localizes the failure when its contract drifts -
  * the empty-stdout branch and the catch branch are easy to break in a
  * refactor.
  */

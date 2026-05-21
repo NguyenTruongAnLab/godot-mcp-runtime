@@ -10,12 +10,14 @@ import {
   extractGdError,
   getErrorMessage,
 } from '../utils/godot-runner.js';
+import { tryLspValidate } from '../utils/lsp-validator.js';
+
 
 export const validateToolDefinitions: ToolDefinition[] = [
   {
     name: 'validate',
     description:
-      "Validate GDScript syntax or scene file integrity using headless Godot. Use before attach_script or run_script to catch parse errors early. Single-target: provide exactly one of scriptPath, source, or scenePath. Batch: provide a targets array — runs all in one Godot process. Returns { valid, errors: [{ line?, message }] } for single, or { results: [{ target, valid, errors }] } for batch. Line numbers appear when Godot's stderr includes them (not always). Returns valid:false on any parse error; never throws.",
+      "Validate GDScript syntax or scene file integrity using headless Godot. Use before attach_script or run_script to catch parse errors early. Single-target: provide exactly one of scriptPath, source, or scenePath. Batch: provide a targets array - runs all in one Godot process. Returns { valid, errors: [{ line?, message }] } for single, or { results: [{ target, valid, errors }] } for batch. Line numbers appear when Godot's stderr includes them (not always). Returns valid:false on any parse error; never throws.",
     annotations: { readOnlyHint: true },
     inputSchema: {
       type: 'object',
@@ -255,7 +257,7 @@ export async function handleValidate(runner: GodotRunner, args: OperationParams)
         }
       }
 
-      // Short-circuit when every target failed pre-validation — no work for
+      // Short-circuit when every target failed pre-validation - no work for
       // Godot, and spawning it would just cost ~3s for a no-op.
       if (snakeTargets.length === 0 && preErrors.size === targets.length) {
         const results = targets.map((_, i) => {
@@ -303,7 +305,7 @@ export async function handleValidate(runner: GodotRunner, args: OperationParams)
 
       // Merge pre-validation failures back into their original positions so
       // output order matches input order. Pre-validation errors are ours, not
-      // Godot's — they bypass the stderr overlay above.
+      // Godot's - they bypass the stderr overlay above.
       const results: Array<{ target: string; valid: boolean; errors: ValidationError[] }> = [];
       let godotIdx = 0;
       for (let i = 0; i < targets.length; i++) {
@@ -332,7 +334,7 @@ export async function handleValidate(runner: GodotRunner, args: OperationParams)
     }
   }
 
-  // Determine mode — exactly one must be provided
+  // Determine mode - exactly one must be provided
   const modeCount = [args.scriptPath, args.source, args.scenePath].filter(Boolean).length;
   if (modeCount === 0) {
     return createErrorResponse('One of scriptPath, source, or scenePath is required', [
@@ -341,9 +343,48 @@ export async function handleValidate(runner: GodotRunner, args: OperationParams)
   }
   if (modeCount > 1) {
     return createErrorResponse(
-      'Provide exactly one of scriptPath, source, or scenePath — not multiple',
+      'Provide exactly one of scriptPath, source, or scenePath - not multiple',
       ['Only one target can be validated per call'],
     );
+  }
+
+  // LSP optimization fallback
+  if (!args.scenePath) {
+    let contentToValidate = '';
+    let fileUriPath = '';
+
+    if (args.source) {
+      contentToValidate = args.source as string;
+      fileUriPath = join(pv.projectPath, `.mcp/validate_temp_lsp_${randomUUID()}.gd`);
+    } else if (args.scriptPath) {
+      if (validateSubPath(pv.projectPath, args.scriptPath as string)) {
+        const fullPath = join(pv.projectPath, args.scriptPath as string);
+        if (existsSync(fullPath)) {
+          try {
+            const { readFileSync } = await import('fs');
+            contentToValidate = readFileSync(fullPath, 'utf8');
+            fileUriPath = fullPath;
+          } catch (_e) {
+            // fallback
+          }
+        }
+      }
+    }
+
+    if (contentToValidate && fileUriPath) {
+      try {
+        const lspErrors = await tryLspValidate(pv.projectPath, fileUriPath, contentToValidate);
+        if (lspErrors !== null) {
+          const result = {
+            valid: lspErrors.length === 0,
+            errors: lspErrors,
+          };
+          return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+        }
+      } catch (_e) {
+        // Fall back gracefully to headless Godot validation
+      }
+    }
   }
 
   let tempFile = false;
@@ -403,7 +444,7 @@ export async function handleValidate(runner: GodotRunner, args: OperationParams)
         gdErrors = parsed.errors;
       }
     } catch {
-      // stdout wasn't JSON — treat as invalid
+      // stdout wasn't JSON - treat as invalid
       valid = false;
     }
 
@@ -416,7 +457,7 @@ export async function handleValidate(runner: GodotRunner, args: OperationParams)
     // The GDScript-side `valid` flag is unreliable for malformed scripts: load()
     // returns a non-null placeholder Resource even when parsing fails, so
     // resource != null is true. Fall back to the parsed stderr errors as the
-    // authoritative signal — matches the batch branch above.
+    // authoritative signal - matches the batch branch above.
     const result = {
       valid: valid && allErrors.length === 0,
       errors: allErrors,

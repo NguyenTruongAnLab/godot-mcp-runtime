@@ -33,14 +33,8 @@ export const inputToolDefinitions: ToolDefinition[] = [
       type: 'object',
       properties: {
         projectPath: { type: 'string', description: 'Path to the Godot project directory' },
-        actionName: {
-          type: 'string',
-          description: 'Name of the input action to add (e.g. "ui_dash")',
-        },
-        key: {
-          type: 'string',
-          description: 'Optional key to bind (e.g. "Shift", "Space", "w", "ArrowLeft")',
-        },
+        actionName: { type: 'string', description: 'Name of the input action to add (e.g. "ui_dash")' },
+        key: { type: 'string', description: 'Optional key to bind (e.g. "Shift", "Space", "w", "ArrowLeft")' },
         deadzone: { type: 'number', description: 'Action deadzone value (default: 0.5)' },
       },
       required: ['projectPath', 'actionName'],
@@ -67,29 +61,29 @@ export const inputToolDefinitions: ToolDefinition[] = [
 function getScancode(key: string): number {
   const k = key.toLowerCase().trim();
   const specialKeys: Record<string, number> = {
-    space: 32,
-    shift: 16777237,
-    left_shift: 16777237,
-    right_shift: 16777238,
-    ctrl: 16777238,
-    control: 16777238,
-    left_control: 16777238,
-    right_control: 16777239,
-    alt: 16777240,
-    left_alt: 16777240,
-    right_alt: 16777241,
-    enter: 16777221,
-    escape: 16777217,
-    left: 16777231,
-    arrowleft: 16777231,
-    up: 16777232,
-    arrowup: 16777232,
-    right: 16777233,
-    arrowright: 16777233,
-    down: 16777234,
-    arrowdown: 16777234,
-    tab: 16777218,
-    backspace: 16777219,
+    'space': 32,
+    'shift': 16777237,
+    'left_shift': 16777237,
+    'right_shift': 16777238,
+    'ctrl': 16777238,
+    'control': 16777238,
+    'left_control': 16777238,
+    'right_control': 16777239,
+    'alt': 16777240,
+    'left_alt': 16777240,
+    'right_alt': 16777241,
+    'enter': 16777221,
+    'escape': 16777217,
+    'left': 16777231,
+    'arrowleft': 16777231,
+    'up': 16777232,
+    'arrowup': 16777232,
+    'right': 16777233,
+    'arrowright': 16777233,
+    'down': 16777234,
+    'arrowdown': 16777234,
+    'tab': 16777218,
+    'backspace': 16777219,
   };
 
   if (specialKeys[k] !== undefined) return specialKeys[k];
@@ -103,8 +97,7 @@ function getScancode(key: string): number {
 
 function parseEvents(eventsStr: string): Array<{ type: string; key?: string; scancode?: number }> {
   const parsed: Array<{ type: string; key?: string; scancode?: number }> = [];
-  const eventRe =
-    /Object\(InputEventKey,"resource_local_to_scene":\w+,"resource_name":"[^"]*","device":\d+,"alt":\w+,"shift":\w+,"control":\w+,"meta":\w+,"command":\w+,"pressed":\w+,"scancode":(\d+)/g;
+  const eventRe = /Object\(InputEventKey,"resource_local_to_scene":\w+,"resource_name":"[^"]*","device":\d+,"alt":\w+,"shift":\w+,"control":\w+,"meta":\w+,"command":\w+,"pressed":\w+,"scancode":(\d+)/g;
   let match;
   while ((match = eventRe.exec(eventsStr)) !== null) {
     const scancode = parseInt(match[1], 10);
@@ -115,10 +108,7 @@ function parseEvents(eventsStr: string): Array<{ type: string; key?: string; sca
 
 // --- Handlers ---
 
-export async function handleListInputActions(
-  _runner: any,
-  args: OperationParams,
-): Promise<ToolResponse> {
+export async function handleListInputActions(_runner: any, args: OperationParams): Promise<ToolResponse> {
   args = normalizeParameters(args);
   const v = validateProjectArgs(args);
   if ('isError' in v) return v;
@@ -135,8 +125,7 @@ export async function handleListInputActions(
     // Extract everything from [input] to next [ section
     const afterInput = content.substring(inputSectionIdx);
     const nextSectionIdx = afterInput.indexOf('\n[', 1);
-    const inputSectionContent =
-      nextSectionIdx === -1 ? afterInput : afterInput.substring(0, nextSectionIdx);
+    const inputSectionContent = nextSectionIdx === -1 ? afterInput : afterInput.substring(0, nextSectionIdx);
 
     const actions: Array<{ name: string; deadzone: number; events: any[] }> = [];
     const actionRe = /^(\w+)\s*=\s*\{([\s\S]*?)\}/gm;
@@ -161,18 +150,13 @@ export async function handleListInputActions(
   }
 }
 
-export async function handleAddInputAction(
-  _runner: any,
-  args: OperationParams,
-): Promise<ToolResponse> {
+export async function handleAddInputAction(_runner: any, args: OperationParams): Promise<ToolResponse> {
   args = normalizeParameters(args);
   const v = validateProjectArgs(args);
   if ('isError' in v) return v;
 
   if (!args.actionName || typeof args.actionName !== 'string' || !/^\w+$/.test(args.actionName)) {
-    return createErrorResponse('Valid actionName is required', [
-      'Provide a valid input action name',
-    ]);
+    return createErrorResponse('Valid actionName is required', ['Provide a valid input action name']);
   }
 
   try {
@@ -184,8 +168,7 @@ export async function handleAddInputAction(
     if (inputSectionIdx !== -1) {
       const afterInput = content.substring(inputSectionIdx);
       const nextSectionIdx = afterInput.indexOf('\n[', 1);
-      const inputSectionContent =
-        nextSectionIdx === -1 ? afterInput : afterInput.substring(0, nextSectionIdx);
+      const inputSectionContent = nextSectionIdx === -1 ? afterInput : afterInput.substring(0, nextSectionIdx);
 
       if (new RegExp(`^${args.actionName}\\s*=`, 'm').test(inputSectionContent)) {
         return createErrorResponse(`Input action "${args.actionName}" already exists`);
@@ -215,26 +198,19 @@ export async function handleAddInputAction(
       writeFileSync(projectFile, lines.join('\n'), 'utf8');
     }
 
-    return {
-      content: [{ type: 'text', text: `Successfully added input action "${args.actionName}"` }],
-    };
+    return { content: [{ type: 'text', text: `Successfully added input action "${args.actionName}"` }] };
   } catch (error: unknown) {
     return createErrorResponse(`Failed to add input action: ${getErrorMessage(error)}`);
   }
 }
 
-export async function handleRemoveInputAction(
-  _runner: any,
-  args: OperationParams,
-): Promise<ToolResponse> {
+export async function handleRemoveInputAction(_runner: any, args: OperationParams): Promise<ToolResponse> {
   args = normalizeParameters(args);
   const v = validateProjectArgs(args);
   if ('isError' in v) return v;
 
   if (!args.actionName || typeof args.actionName !== 'string') {
-    return createErrorResponse('actionName is required', [
-      'Provide the input action name to remove',
-    ]);
+    return createErrorResponse('actionName is required', ['Provide the input action name to remove']);
   }
 
   try {
@@ -248,8 +224,7 @@ export async function handleRemoveInputAction(
 
     const afterInput = content.substring(inputSectionIdx);
     const nextSectionIdx = afterInput.indexOf('\n[', 1);
-    const inputSectionContent =
-      nextSectionIdx === -1 ? afterInput : afterInput.substring(0, nextSectionIdx);
+    const inputSectionContent = nextSectionIdx === -1 ? afterInput : afterInput.substring(0, nextSectionIdx);
 
     const actionRegex = new RegExp(`^${args.actionName}\\s*=\\s*\\{[\\s\\S]*?\\}\\r?\\n`, 'm');
     if (!actionRegex.test(inputSectionContent)) {
@@ -263,9 +238,7 @@ export async function handleRemoveInputAction(
     const newContent = beforeInput + updatedSectionContent + sectionEnd;
     writeFileSync(projectFile, newContent, 'utf8');
 
-    return {
-      content: [{ type: 'text', text: `Successfully removed input action "${args.actionName}"` }],
-    };
+    return { content: [{ type: 'text', text: `Successfully removed input action "${args.actionName}"` }] };
   } catch (error: unknown) {
     return createErrorResponse(`Failed to remove input action: ${getErrorMessage(error)}`);
   }

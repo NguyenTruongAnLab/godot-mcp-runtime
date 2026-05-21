@@ -25,6 +25,7 @@ import {
   handleSetupAnimationTree,
   handleSetupCollision3D,
   handleSetupJoint3D,
+  handleGenerateGuiHierarchy,
 } from '../../../src/tools/node-tools.js';
 import { createFakeRunner } from '../../helpers/fake-runner.js';
 import { hasError, expectErrorMatching } from '../../helpers/assertions.js';
@@ -888,7 +889,7 @@ describe('handleSetNodeMetadata', () => {
 
   it('calls runner for successful set metadata', async () => {
     const fake = createFakeRunner({
-      stdout: "Successfully set metadata 'tag' on node root/Player",
+      stdout: 'Successfully set metadata \'tag\' on node root/Player',
     });
     const result = await handleSetNodeMetadata(fake.asRunner, {
       ...validBase,
@@ -946,8 +947,7 @@ describe('handleGetNodeMetadata', () => {
 describe('handleSetupControl', () => {
   it('calls runner with all parameters', async () => {
     const fake = createFakeRunner({
-      stdout:
-        '{"nodePath":"root/CanvasLayer/HUD","applied":["anchor_preset=full_rect","min_size=Vector2(100, 50)","size_flags_h=fill","size_flags_v=fill","margins={\\"left\\":10,\\"top\\":10,\\"right\\":10,\\"bottom\\":10}","separation=15","grow_h=both","grow_v=both"],"count":8}',
+      stdout: '{"nodePath":"root/CanvasLayer/HUD","applied":["anchor_preset=full_rect","min_size=Vector2(100, 50)","size_flags_h=fill","size_flags_v=fill","margins={\\"left\\":10,\\"top\\":10,\\"right\\":10,\\"bottom\\":10}","separation=15","grow_h=both","grow_v=both"],"count":8}',
     });
     const result = await handleSetupControl(fake.asRunner, {
       ...validBase,
@@ -986,8 +986,7 @@ describe('handleSetupControl', () => {
 describe('handleSetupCollision', () => {
   it('calls runner with all parameters for 2D shape', async () => {
     const fake = createFakeRunner({
-      stdout:
-        '{"nodePath":"root/Player/CollisionShape2D","shapeType":"RectangleShape2D","dimension":"2D","success":true}',
+      stdout: '{"nodePath":"root/Player/CollisionShape2D","shapeType":"RectangleShape2D","dimension":"2D","success":true}',
     });
     const result = await handleSetupCollision(fake.asRunner, {
       ...validBase,
@@ -1140,8 +1139,7 @@ describe('handleGetPhysicsLayers', () => {
 
   it('calls runner for successful get physics layers', async () => {
     const fake = createFakeRunner({
-      stdout:
-        '{"nodePath":"root/Player","collision_layer":1,"collision_layer_info":[{"layer":1,"name":"Player"}],"collision_mask":2,"collision_mask_info":[{"layer":2,"name":"Enemies"}],"success":true}',
+      stdout: '{"nodePath":"root/Player","collision_layer":1,"collision_layer_info":[{"layer":1,"name":"Player"}],"collision_mask":2,"collision_mask_info":[{"layer":2,"name":"Enemies"}],"success":true}',
     });
     const result = await handleGetPhysicsLayers(fake.asRunner, {
       ...validBase,
@@ -1209,8 +1207,7 @@ describe('handleSetupCamera', () => {
 
   it('calls runner for successful setup camera', async () => {
     const fake = createFakeRunner({
-      stdout:
-        '{"nodePath":"root/Player/Camera2D","name":"Camera2D","dimension":"2D","success":true}',
+      stdout: '{"nodePath":"root/Player/Camera2D","name":"Camera2D","dimension":"2D","success":true}',
     });
     const result = await handleSetupCamera(fake.asRunner, {
       ...validBase,
@@ -1244,8 +1241,7 @@ describe('handleSetupLighting', () => {
 
   it('calls runner for successful setup lighting', async () => {
     const fake = createFakeRunner({
-      stdout:
-        '{"nodePath":"root/Spatial/SunLight","name":"SunLight","lightType":"DirectionalLight","success":true}',
+      stdout: '{"nodePath":"root/Spatial/SunLight","name":"SunLight","lightType":"DirectionalLight","success":true}',
     });
     const result = await handleSetupLighting(fake.asRunner, {
       ...validBase,
@@ -1306,7 +1302,7 @@ describe('handleSetupEnvironment', () => {
     expect(parsed.nodePath).toBe('root/WorldEnvironment');
     expect(parsed.success).toBe(true);
   });
-});
+ });
 
 // ---------------------------------------------------------------------------
 // handleSetupNavigation3D
@@ -1324,8 +1320,7 @@ describe('handleSetupNavigation3D', () => {
 
   it('calls runner for successful setup navigation 3D', async () => {
     const fake = createFakeRunner({
-      stdout:
-        '{"navigationPath":"root/Navigation","instancePath":"root/Navigation/NavigationMeshInstance","agentPath":"root/Player/NavigationAgent","success":true}',
+      stdout: '{"navigationPath":"root/Navigation","instancePath":"root/Navigation/NavigationMeshInstance","agentPath":"root/Player/NavigationAgent","success":true}',
     });
     const result = await handleSetupNavigation3D(fake.asRunner, {
       ...validBase,
@@ -1366,8 +1361,7 @@ describe('handleCreateParticles3D', () => {
 
   it('calls runner for successful create particles 3D', async () => {
     const fake = createFakeRunner({
-      stdout:
-        '{"nodePath":"root/Spatial/CPUParticles","name":"CPUParticles","preset":"fire","success":true}',
+      stdout: '{"nodePath":"root/Spatial/CPUParticles","name":"CPUParticles","preset":"fire","success":true}',
     });
     const result = await handleCreateParticles3D(fake.asRunner, {
       ...validBase,
@@ -1444,8 +1438,7 @@ describe('handleSetupCollision3D', () => {
 
   it('calls runner for successful setup collision 3D', async () => {
     const fake = createFakeRunner({
-      stdout:
-        '{"nodePath":"root/Spatial/MeshInstance/MeshInstanceCollision","shapeType":"BoxShape","success":true}',
+      stdout: '{"nodePath":"root/Spatial/MeshInstance/MeshInstanceCollision","shapeType":"BoxShape","success":true}',
     });
     const result = await handleSetupCollision3D(fake.asRunner, {
       ...validBase,
@@ -1476,8 +1469,7 @@ describe('handleSetupJoint3D', () => {
 
   it('calls runner for successful setup joint 3D', async () => {
     const fake = createFakeRunner({
-      stdout:
-        '{"nodePath":"root/Spatial/PinJoint","name":"PinJoint","jointType":"PinJoint","success":true}',
+      stdout: '{"nodePath":"root/Spatial/PinJoint","name":"PinJoint","jointType":"PinJoint","success":true}',
     });
     const result = await handleSetupJoint3D(fake.asRunner, {
       ...validBase,
@@ -1496,3 +1488,59 @@ describe('handleSetupJoint3D', () => {
     expect(parsed.success).toBe(true);
   });
 });
+
+// ---------------------------------------------------------------------------
+// handleGenerateGuiHierarchy
+// ---------------------------------------------------------------------------
+
+describe('handleGenerateGuiHierarchy', () => {
+  it('rejects parentPath containing ..', async () => {
+    const fake = createFakeRunner();
+    const result = await handleGenerateGuiHierarchy(fake.asRunner, {
+      ...validBase,
+      parentPath: '../escape',
+      hierarchy: { type: 'Panel', name: 'MainPanel' },
+    });
+    expectErrorMatching(result, /parentPath/i);
+  });
+
+  it('rejects missing or invalid hierarchy', async () => {
+    const fake = createFakeRunner();
+    const result = await handleGenerateGuiHierarchy(fake.asRunner, {
+      ...validBase,
+      parentPath: 'root',
+    });
+    expectErrorMatching(result, /hierarchy/i);
+  });
+
+  it('calls runner for successful GUI hierarchy generation', async () => {
+    const fake = createFakeRunner({
+      stdout: '{"scene_path":"scenes/main.tscn","parent_path":"root","root_node_name":"MainPanel","root_node_path":"root/MainPanel","success":true}',
+    });
+    const result = await handleGenerateGuiHierarchy(fake.asRunner, {
+      ...validBase,
+      parentPath: 'root',
+      hierarchy: {
+        type: 'Panel',
+        name: 'MainPanel',
+        anchorPreset: 'full_rect',
+        children: [
+          {
+            type: 'Button',
+            name: 'PlayButton',
+            minSize: { x: 100, y: 40 },
+          },
+        ],
+      },
+    });
+    expect(hasError(result)).toBe(false);
+    const text = (result as { content: Array<{ text: string }> }).content[0].text;
+    const parsed = JSON.parse(text);
+    expect(parsed.root_node_path).toBe('root/MainPanel');
+    expect(parsed.success).toBe(true);
+  });
+});
+
+
+
+

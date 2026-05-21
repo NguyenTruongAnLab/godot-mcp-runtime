@@ -13,7 +13,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 /** Absolute path to tests/fixtures/godot-project. */
 export const fixtureProjectPath = join(here, '..', 'fixtures', 'godot-project');
 
-/** Scene path *relative to the project root* — matches the MCP tool contract. */
+/** Scene path *relative to the project root* - matches the MCP tool contract. */
 export const fixtureScenePath = 'main.tscn';
 
 /** Absolute path to the fixture's main.tscn. */

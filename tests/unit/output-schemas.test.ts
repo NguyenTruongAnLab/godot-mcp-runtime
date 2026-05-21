@@ -12,7 +12,7 @@ const toolsWithOutputSchema: Array<[string, ToolDefinition]> = allToolDefinition
   )
   .map((t) => [t.name, t] as [string, ToolDefinition]);
 
-describe('outputSchema — every declared schema is valid', () => {
+describe('outputSchema - every declared schema is valid', () => {
   it.each(toolsWithOutputSchema)('%s outputSchema compiles under ajv', (_name, tool) => {
     const compile = () => ajv.compile(tool.outputSchema as object);
     expect(compile).not.toThrow();
@@ -24,8 +24,8 @@ describe('outputSchema — every declared schema is valid', () => {
 });
 
 describe('outputSchema and Returns: prose are complementary, not exclusive', () => {
-  // Per docs/tool-authoring.md §3, when a tool has an outputSchema it must also
-  // carry a Returns: sentence in its description — the schema is invisible to
+  // Per the tool design rules, when a tool has an outputSchema it must also
+  // carry a Returns: sentence in its description - the schema is invisible to
   // the agent, so the prose is the only return-shape signal the LLM ever sees.
   it.each(toolsWithOutputSchema)(
     '%s description has a Returns: sentence alongside its outputSchema',
@@ -35,7 +35,7 @@ describe('outputSchema and Returns: prose are complementary, not exclusive', () 
   );
 });
 
-describe('outputSchema — expected coverage', () => {
+describe('outputSchema - expected coverage', () => {
   it('at least 15 tools have an outputSchema (14 added + create_scene)', () => {
     expect(toolsWithOutputSchema.length).toBeGreaterThanOrEqual(15);
   });

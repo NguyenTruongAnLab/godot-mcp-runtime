@@ -4,8 +4,8 @@ import { readFileSync, writeFileSync } from 'fs';
  * Parsing and editing primitives for the `[autoload]` section of project.godot.
  *
  * Used by:
- *  - tools/autoload-tools.ts — list/add/remove/update_autoload handlers
- *  - utils/bridge-manager.ts — McpBridge inject/cleanup/repair
+ *  - tools/autoload-tools.ts - list/add/remove/update_autoload handlers
+ *  - utils/bridge-manager.ts - McpBridge inject/cleanup/repair
  *
  * Pure functions: each takes the absolute path to project.godot and returns
  * either parsed data or a boolean indicating whether the file was mutated.

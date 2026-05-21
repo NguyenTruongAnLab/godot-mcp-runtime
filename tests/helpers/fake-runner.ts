@@ -11,9 +11,9 @@
  * the catch branch. Pass `godotVersion` to control what `getVersion()`
  * returns for handlers that read it (e.g. handleGetProjectInfo).
  *
- * `runner.calls` is a spy surface — use it sparingly. The default rubric is
+ * `runner.calls` is a spy surface - use it sparingly. The default rubric is
  * "assert outputs, not internal calls." Reach for `calls` only to confirm a
- * boundary contract that the result shape cannot — e.g. that a batch handler
+ * boundary contract that the result shape cannot - e.g. that a batch handler
  * actually invoked the batch operation rather than the single-target one.
  */
 
@@ -49,7 +49,7 @@ export interface FakeRunnerOptions {
 export interface FakeRunner {
   /** Recorded calls to executeOperation, in order. */
   calls: FakeRunnerCall[];
-  /** The runner cast to GodotRunner — pass directly to handlers. */
+  /** The runner cast to GodotRunner - pass directly to handlers. */
   asRunner: GodotRunner;
 }
 

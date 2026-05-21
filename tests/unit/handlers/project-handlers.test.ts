@@ -183,7 +183,7 @@ describe('handleGetSceneDependencies', () => {
       scenePath: '../outside.tscn',
     });
     // handleGetSceneDependencies validates scenePath inline ("Invalid scenePath")
-    // rather than via validateSceneArgs ("Invalid scene path") — match either.
+    // rather than via validateSceneArgs ("Invalid scene path") - match either.
     expectErrorMatching(result, /invalid scene\s?path/i);
   });
 
@@ -359,7 +359,7 @@ describe('handleListProjects', () => {
   });
 
   it('returns a list (possibly empty) for a valid directory', async () => {
-    // Fresh empty dir — guarantees no ambient Godot projects scanned.
+    // Fresh empty dir - guarantees no ambient Godot projects scanned.
     const dir = makeTmpEmptyDir();
     const result = await handleListProjects({ directory: dir });
     expect(hasError(result)).toBe(false);
@@ -404,67 +404,43 @@ describe('handleListProjects', () => {
 
 describe('handleSetProjectSetting', () => {
   it('rejects missing projectPath', async () => {
-    const result = await handleSetProjectSetting(
-      {},
-      { section: 'display', key: 'window/size/width', value: 800 },
-    );
+    const result = await handleSetProjectSetting({}, { section: 'display', key: 'window/size/width', value: 800 });
     expectErrorMatching(result, /projectPath/i);
   });
 
   it('rejects missing parameters', async () => {
     const dir = makeTmpProject();
-    expectErrorMatching(
-      await handleSetProjectSetting({}, { projectPath: dir, key: 'k', value: 'v' }),
-      /section/i,
-    );
-    expectErrorMatching(
-      await handleSetProjectSetting({}, { projectPath: dir, section: 's', value: 'v' }),
-      /key/i,
-    );
-    expectErrorMatching(
-      await handleSetProjectSetting({}, { projectPath: dir, section: 's', key: 'k' }),
-      /value/i,
-    );
+    expectErrorMatching(await handleSetProjectSetting({}, { projectPath: dir, key: 'k', value: 'v' }), /section/i);
+    expectErrorMatching(await handleSetProjectSetting({}, { projectPath: dir, section: 's', value: 'v' }), /key/i);
+    expectErrorMatching(await handleSetProjectSetting({}, { projectPath: dir, section: 's', key: 'k' }), /value/i);
   });
 
   it('configures new key in a missing section', async () => {
     const dir = makeTmpProject();
-    const result = await handleSetProjectSetting(
-      {},
-      {
-        projectPath: dir,
-        section: 'custom_section',
-        key: 'my_key',
-        value: 42,
-      },
-    );
+    const result = await handleSetProjectSetting({}, {
+      projectPath: dir,
+      section: 'custom_section',
+      key: 'my_key',
+      value: 42,
+    });
     expect(hasError(result)).toBe(false);
 
     // Verify it parses back correctly
-    const settingsRes = await handleGetProjectSettings({
-      projectPath: dir,
-      section: 'custom_section',
-    });
+    const settingsRes = await handleGetProjectSettings({ projectPath: dir, section: 'custom_section' });
     const parsed = parseText<{ settings: Record<string, unknown> }>(settingsRes);
     expect(parsed.settings['my_key']).toBe(42);
   });
 
   it('updates an existing key in a section', async () => {
     const dir = makeTmpProject();
-    await handleSetProjectSetting(
-      {},
-      {
-        projectPath: dir,
-        section: 'application',
-        key: 'config/name',
-        value: 'Updated Name',
-      },
-    );
-
-    const settingsRes = await handleGetProjectSettings({
+    await handleSetProjectSetting({}, {
       projectPath: dir,
       section: 'application',
+      key: 'config/name',
+      value: 'Updated Name',
     });
+
+    const settingsRes = await handleGetProjectSettings({ projectPath: dir, section: 'application' });
     const parsed = parseText<{ settings: Record<string, unknown> }>(settingsRes);
     expect(parsed.settings['config/name']).toBe('Updated Name');
   });
@@ -477,58 +453,35 @@ describe('handleSetProjectSetting', () => {
 describe('handleSetCollisionLayerName', () => {
   it('rejects invalid index or type', async () => {
     const dir = makeTmpProject();
-    expectErrorMatching(
-      await handleSetCollisionLayerName(
-        {},
-        { projectPath: dir, type: '4d', layerIndex: 5, name: 'x' },
-      ),
-      /type/i,
-    );
-    expectErrorMatching(
-      await handleSetCollisionLayerName(
-        {},
-        { projectPath: dir, type: '2d', layerIndex: 99, name: 'x' },
-      ),
-      /layerIndex/i,
-    );
+    expectErrorMatching(await handleSetCollisionLayerName({}, { projectPath: dir, type: '4d', layerIndex: 5, name: 'x' }), /type/i);
+    expectErrorMatching(await handleSetCollisionLayerName({}, { projectPath: dir, type: '2d', layerIndex: 99, name: 'x' }), /layerIndex/i);
   });
 
   it('sets 2D and 3D collision layer names successfully', async () => {
     const dir = makeTmpProject();
-    const result2D = await handleSetCollisionLayerName(
-      {},
-      {
-        projectPath: dir,
-        type: '2d',
-        layerIndex: 1,
-        name: 'Player',
-      },
-    );
+    const result2D = await handleSetCollisionLayerName({}, {
+      projectPath: dir,
+      type: '2d',
+      layerIndex: 1,
+      name: 'Player',
+    });
     expect(hasError(result2D)).toBe(false);
 
-    const result3D = await handleSetCollisionLayerName(
-      {},
-      {
-        projectPath: dir,
-        type: '3d',
-        layerIndex: 2,
-        name: 'Coins',
-      },
-    );
+    const result3D = await handleSetCollisionLayerName({}, {
+      projectPath: dir,
+      type: '3d',
+      layerIndex: 2,
+      name: 'Coins',
+    });
     expect(hasError(result3D)).toBe(false);
 
-    const settings2D = await handleGetProjectSettings({
-      projectPath: dir,
-      section: 'layer_names/2d_physics',
-    });
+    const settings2D = await handleGetProjectSettings({ projectPath: dir, section: 'layer_names/2d_physics' });
     const parsed2D = parseText<{ settings: Record<string, unknown> }>(settings2D);
     expect(parsed2D.settings['layer_1']).toBe('Player');
 
-    const settings3D = await handleGetProjectSettings({
-      projectPath: dir,
-      section: 'layer_names/3d_physics',
-    });
+    const settings3D = await handleGetProjectSettings({ projectPath: dir, section: 'layer_names/3d_physics' });
     const parsed3D = parseText<{ settings: Record<string, unknown> }>(settings3D);
     expect(parsed3D.settings['layer_2']).toBe('Coins');
   });
 });
+

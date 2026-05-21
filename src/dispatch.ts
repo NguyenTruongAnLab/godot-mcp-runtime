@@ -7,7 +7,7 @@
  *
  * Behavioral contract preserved from the original switch in index.ts:
  *  - Each name routes to the same handler it did before.
- *  - Unknown tool names throw McpError(MethodNotFound, ...) — see
+ *  - Unknown tool names throw McpError(MethodNotFound, ...) - see
  *    `dispatchToolCall`.
  */
 
@@ -31,6 +31,11 @@ import {
   handleSimulateInput,
   handleGetUiElements,
   handleRunScript,
+  handleGetPerformanceMetrics,
+  handleQuerySpatialCollision,
+  handleGetGroundClamp,
+  handleRecordTelemetrySequence,
+  handleNavigateTo,
 } from './tools/runtime-tools.js';
 
 import {
@@ -87,6 +92,7 @@ import {
   handleSetupAnimationTree,
   handleSetupCollision3D,
   handleSetupJoint3D,
+  handleGenerateGuiHierarchy,
 } from './tools/node-tools.js';
 
 import { handleValidate } from './tools/validate-tools.js';
@@ -105,11 +111,17 @@ import {
   handleRemoveInputAction,
 } from './tools/input-tools.js';
 
-import { handleCreateTresResource, handleApplySpatialMaterial } from './tools/resource-tools.js';
+import {
+  handleCreateTresResource,
+  handleApplySpatialMaterial,
+  handleCompileMaterialTree,
+  handleSetSpatialMaterial,
+} from './tools/resource-tools.js';
 
 import { handleSetTilemapCell, handleSetGridmapCell } from './tools/tilemap-tools.js';
-import { handleConfigureAnimation } from './tools/animation-tools.js';
+import { handleConfigureAnimation, handleGetAnimationList, handlePipeAnimationStates } from './tools/animation-tools.js';
 import { handleCreateShaderResource, handleApplyShaderMaterial } from './tools/shader-tools.js';
+import { handleImportResource } from './tools/import-resource-tools.js';
 
 export const toolDispatch: Record<string, ToolHandler> = {
   // Project tools
@@ -125,6 +137,11 @@ export const toolDispatch: Record<string, ToolHandler> = {
   simulate_input: handleSimulateInput,
   get_ui_elements: handleGetUiElements,
   run_script: handleRunScript,
+  get_performance_metrics: handleGetPerformanceMetrics,
+  query_spatial_collision: handleQuerySpatialCollision,
+  get_ground_clamp: handleGetGroundClamp,
+  record_telemetry_sequence: handleRecordTelemetrySequence,
+  navigate_to: handleNavigateTo,
   list_autoloads: (_runner, args) => handleListAutoloads(args),
   add_autoload: (_runner, args) => handleAddAutoload(args),
   remove_autoload: (_runner, args) => handleRemoveAutoload(args),
@@ -171,6 +188,7 @@ export const toolDispatch: Record<string, ToolHandler> = {
   setup_animation_tree: handleSetupAnimationTree,
   setup_collision_3d: handleSetupCollision3D,
   setup_joint_3d: handleSetupJoint3D,
+  generate_gui_hierarchy: handleGenerateGuiHierarchy,
 
   // Validate tools
   validate: handleValidate,
@@ -190,11 +208,16 @@ export const toolDispatch: Record<string, ToolHandler> = {
   // Resource tools
   create_tres_resource: handleCreateTresResource,
   apply_spatial_material: handleApplySpatialMaterial,
+  set_spatial_material: handleSetSpatialMaterial,
+  compile_material_tree: handleCompileMaterialTree,
   set_tilemap_cell: handleSetTilemapCell,
   set_gridmap_cell: handleSetGridmapCell,
   configure_animation: handleConfigureAnimation,
+  get_animation_list: handleGetAnimationList,
+  pipe_animation_states: handlePipeAnimationStates,
   create_shader_resource: handleCreateShaderResource,
   apply_shader_material: handleApplyShaderMaterial,
+  import_resource: handleImportResource,
 };
 
 export async function dispatchToolCall(

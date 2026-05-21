@@ -90,12 +90,16 @@ func _init():
 			validate_resource(params)
 		"apply_spatial_material":
 			apply_spatial_material(params)
+		"set_spatial_material":
+			set_spatial_material(params)
 		"instance_scene":
 			instance_scene(params)
 		"set_tilemap_cell":
 			set_tilemap_cell(params)
 		"configure_animation":
 			configure_animation(params)
+		"get_animation_list":
+			ops_get_animation_list(params)
 		"set_gridmap_cell":
 			set_gridmap_cell(params)
 		"setup_control":
@@ -132,6 +136,10 @@ func _init():
 			setup_collision_3d(params)
 		"setup_joint_3d":
 			setup_joint_3d(params)
+		"pipe_animation_states":
+			pipe_animation_states(params)
+		"generate_gui_hierarchy":
+			generate_gui_hierarchy(params)
 		# Batch operations
 		"validate_batch":
 			validate_batch(params)
@@ -391,10 +399,10 @@ func _apply_load_sprite(scene_root: Node, op: Dictionary) -> Dictionary:
 		return {"ok": false, "error": "Failed to load texture: " + full_texture_path}
 	if not (texture is Texture):
 		return {"ok": false, "error": "Loaded resource is not a Texture: " + full_texture_path}
-	# A texture without a resource_path is a runtime-only object — PackedScene.pack()
+	# A texture without a resource_path is a runtime-only object - PackedScene.pack()
 	# cannot serialize it, so the assignment would silently vanish on save.
 	if texture.resource_path == "":
-		return {"ok": false, "error": "Texture has no resource_path — likely not imported. Open project in Godot editor once, or run 'godot --headless --editor --quit' to import assets."}
+		return {"ok": false, "error": "Texture has no resource_path - likely not imported. Open project in Godot editor once, or run 'godot --headless --editor --quit' to import assets."}
 	sprite_node.texture = texture
 	return {"ok": true, "error": ""}
 
@@ -743,7 +751,7 @@ func duplicate_node(params):
 
 	parent.add_child(duplicate)
 	duplicate.owner = scene_root
-	# Iterative BFS to set owner on all descendants — avoids recursion depth.
+	# Iterative BFS to set owner on all descendants - avoids recursion depth.
 	var queue: Array = duplicate.get_children()
 	while queue.size() > 0:
 		var current = queue.pop_front()
@@ -915,7 +923,125 @@ func apply_spatial_material(params):
 		quit(1)
 		return
 
-# ============================================
+func _load_texture_helper(path):
+	var t_path = path
+	if not t_path.begins_with("res://"):
+		t_path = "res://" + t_path
+	var tex = load(t_path)
+	if not tex:
+		log_error("Failed to load texture at path: " + t_path)
+		quit(1)
+		return null
+	return tex
+
+# Creates or configures a SpatialMaterial on a MeshInstance inside a scene (saves once)
+func set_spatial_material(params):
+	printerr("Setting spatial material in scene: " + params.scene_path)
+	var scene_root = load_scene_instance(params.scene_path)
+	if not scene_root:
+		quit(1)
+		return
+
+	var node = find_node_by_path(scene_root, params.node_path)
+	if not node:
+		log_error("Node not found: " + params.node_path)
+		quit(1)
+		return
+
+	if not (node is MeshInstance):
+		log_error("Node is not a MeshInstance: " + params.node_path)
+		quit(1)
+		return
+
+	var mesh_instance = node as MeshInstance
+	var surface_index = int(params.get("surface_index", -1))
+	var material = null
+
+	if surface_index >= 0:
+		material = mesh_instance.get_surface_material(surface_index)
+	else:
+		material = mesh_instance.material_override
+
+	if not material or not (material is SpatialMaterial):
+		if ClassDB.can_instance("StandardMaterial3D"):
+			material = ClassDB.instance("StandardMaterial3D")
+		else:
+			material = SpatialMaterial.new()
+
+	if params.has("albedo_color"):
+		var color = _coerce_property_value(params.albedo_color)
+		if color is Color:
+			material.albedo_color = color
+
+	if params.has("albedo_texture") and params.albedo_texture != "":
+		var tex = _load_texture_helper(params.albedo_texture)
+		if tex:
+			material.albedo_texture = tex
+
+	if params.has("metallic"):
+		material.metallic = float(params.metallic)
+
+	if params.has("roughness"):
+		material.roughness = float(params.roughness)
+
+	if params.has("metallic_texture") and params.metallic_texture != "":
+		var tex = _load_texture_helper(params.metallic_texture)
+		if tex:
+			material.metallic_texture = tex
+
+	if params.has("roughness_texture") and params.roughness_texture != "":
+		var tex = _load_texture_helper(params.roughness_texture)
+		if tex:
+			material.roughness_texture = tex
+
+	if params.has("normal_enabled"):
+		var norm_en = bool(params.normal_enabled)
+		if "normal_enabled" in material:
+			material.normal_enabled = norm_en
+
+	if params.has("normal_texture") and params.normal_texture != "":
+		var tex = _load_texture_helper(params.normal_texture)
+		if tex:
+			material.normal_texture = tex
+
+	if params.has("normal_scale"):
+		if "normal_scale" in material:
+			material.normal_scale = float(params.normal_scale)
+
+	if params.has("transparency"):
+		var transp = bool(params.transparency)
+		if "flags_transparent" in material:
+			material.flags_transparent = transp
+		elif "transparency" in material:
+			material.transparency = 1 if transp else 0
+
+	if params.has("cull_mode"):
+		var cull_str = String(params.cull_mode).to_lower()
+		var cull_val = 0
+		if cull_str == "front":
+			cull_val = 1
+		elif cull_str == "disabled" or cull_str == "none":
+			cull_val = 2
+		if "params_cull_mode" in material:
+			material.params_cull_mode = cull_val
+		elif "cull_mode" in material:
+			material.cull_mode = cull_val
+
+	# Reassign material to node
+	if surface_index >= 0:
+		mesh_instance.set_surface_material(surface_index, material)
+	else:
+		mesh_instance.material_override = material
+
+	if save_scene_to_path(scene_root, params.scene_path):
+		var target_str = "surface " + str(surface_index) if surface_index >= 0 else "material_override"
+		print("SpatialMaterial successfully configured and applied to " + target_str + " on node " + params.node_path)
+	else:
+		log_error("Failed to save scene after configuring spatial material")
+		quit(1)
+		return
+
+# ============================================================
 # VALIDATE OPERATION
 # ============================================
 
@@ -943,6 +1069,17 @@ func _coerce_property_value(value):
 		elif value.has("r") and value.has("g") and value.has("b"):
 			var a = value.a if value.has("a") else 1.0
 			return Color(value.r, value.g, value.b, a)
+	elif typeof(value) == TYPE_STRING:
+		var s: String = value.strip_edges()
+		if s.begins_with("#"):
+			return Color(s)
+		if s.begins_with("Vector2(") or s.begins_with("Vector3(") or s.begins_with("Color(") or s.begins_with("Rect2(") or s.begins_with("Transform(") or s.begins_with("Quat(") or s.begins_with("Plane(") or s.begins_with("Basis("):
+			var expr = Expression.new()
+			var err = expr.parse(s, [])
+			if err == OK:
+				var res = expr.execute([], null, false)
+				if not expr.has_execute_failed():
+					return res
 	return value
 
 # Helper: collect node properties into a serializable Dictionary. When
@@ -1245,6 +1382,40 @@ func configure_animation(params):
 		quit(1)
 		return
 
+# List all animations in an AnimationPlayer node
+func ops_get_animation_list(params):
+	printerr("Listing animations on " + params.player_path + " in scene " + params.scene_path)
+	var scene_root = load_scene_instance(params.scene_path)
+	if not scene_root:
+		quit(1)
+		return
+
+	var node = find_node_by_path(scene_root, params.player_path)
+	if not node:
+		log_error("AnimationPlayer node not found: " + params.player_path)
+		quit(1)
+		return
+
+	if not (node is AnimationPlayer):
+		log_error("Node is not an AnimationPlayer: " + params.player_path)
+		quit(1)
+		return
+
+	var player = node as AnimationPlayer
+	var animations = []
+
+	for anim_name in player.get_animation_list():
+		var anim = player.get_animation(anim_name)
+		if anim:
+			animations.append({
+				"name": anim_name,
+				"length": anim.length,
+				"loop": anim.loop,
+				"trackCount": anim.get_track_count()
+			})
+
+	print(to_json({"animations": animations}))
+
 # Set a cell in a GridMap node (saves once)
 func set_gridmap_cell(params):
 	printerr("Setting gridmap cell in scene: " + params.scene_path)
@@ -1265,16 +1436,38 @@ func set_gridmap_cell(params):
 		return
 
 	var grid_map = node as GridMap
-	var x = int(params.x)
-	var y = int(params.y)
-	var z = int(params.z)
-	var item = int(params.item)
-	var orientation = int(params.get("orientation", 0))
-
-	grid_map.set_cell_item(x, y, z, item, orientation)
+	if params.has("cells"):
+		var cells = params.cells
+		if typeof(cells) == TYPE_ARRAY:
+			for cell in cells:
+				if typeof(cell) == TYPE_DICTIONARY:
+					var cx = int(cell.get("x", 0))
+					var cy = int(cell.get("y", 0))
+					var cz = int(cell.get("z", 0))
+					var citem = int(cell.get("item", -1))
+					var corient = int(cell.get("orientation", 0))
+					grid_map.set_cell_item(cx, cy, cz, citem, corient)
+		else:
+			log_error("cells parameter must be an array")
+			quit(1)
+			return
+	else:
+		var x = int(params.x)
+		var y = int(params.y)
+		var z = int(params.z)
+		var item = int(params.item)
+		var orientation = int(params.get("orientation", 0))
+		grid_map.set_cell_item(x, y, z, item, orientation)
 
 	if save_scene_to_path(scene_root, params.scene_path):
-		print("GridMap cell at (" + str(x) + ", " + str(y) + ", " + str(z) + ") set to item " + str(item))
+		if params.has("cells"):
+			print("GridMap successfully set batch cells (" + str(params.cells.size()) + " cells)")
+		else:
+			var x = int(params.x)
+			var y = int(params.y)
+			var z = int(params.z)
+			var item = int(params.item)
+			print("GridMap cell at (" + str(x) + ", " + str(y) + ", " + str(z) + ") set to item " + str(item))
 	else:
 		log_error("Failed to save scene after setting gridmap cell")
 		quit(1)
@@ -2096,6 +2289,19 @@ func setup_camera(params):
 			camera.translation = _coerce_property_value(params.position)
 		if params.has("rotation"):
 			camera.rotation_degrees = _coerce_property_value(params.rotation)
+		if params.has("look_at"):
+			var eye = camera.translation
+			var target = _coerce_property_value(params.look_at)
+			if eye is Vector3 and target is Vector3:
+				var up = Vector3.UP
+				var z_dir = (eye - target).normalized()
+				if z_dir.length_squared() > 0.001:
+					if abs(z_dir.dot(up)) > 0.999:
+						up = Vector3.FORWARD
+					var x_dir = up.cross(z_dir).normalized()
+					var y_dir = z_dir.cross(x_dir).normalized()
+					var basis = Basis(x_dir, y_dir, z_dir)
+					camera.rotation_degrees = basis.get_euler() * (180.0 / PI)
 
 	if is_new:
 		parent.add_child(camera)
@@ -2815,5 +3021,188 @@ func setup_joint_3d(params):
 		quit(1)
 		return
 
+func _resolve_anchor_preset(preset) -> int:
+	if typeof(preset) == TYPE_INT or typeof(preset) == TYPE_REAL:
+		return int(preset)
+	if typeof(preset) == TYPE_STRING:
+		match preset.to_lower():
+			"top_left": return Control.PRESET_TOP_LEFT
+			"top_right": return Control.PRESET_TOP_RIGHT
+			"bottom_left": return Control.PRESET_BOTTOM_LEFT
+			"bottom_right": return Control.PRESET_BOTTOM_RIGHT
+			"center_left": return Control.PRESET_CENTER_LEFT
+			"center_top": return Control.PRESET_CENTER_TOP
+			"center_right": return Control.PRESET_CENTER_RIGHT
+			"center_bottom": return Control.PRESET_CENTER_BOTTOM
+			"center": return Control.PRESET_CENTER
+			"left_wide": return Control.PRESET_LEFT_WIDE
+			"top_wide": return Control.PRESET_TOP_WIDE
+			"right_wide": return Control.PRESET_RIGHT_WIDE
+			"bottom_wide": return Control.PRESET_BOTTOM_WIDE
+			"vcenter_wide": return Control.PRESET_VCENTER_WIDE
+			"hcenter_wide": return Control.PRESET_HCENTER_WIDE
+			"wide", "full_rect": return Control.PRESET_WIDE
+	return Control.PRESET_TOP_LEFT
 
+func _instantiate_gui_node(scene_root: Node, parent_node: Node, node_spec: Dictionary) -> Node:
+	var node_type = node_spec.get("type", "Control")
+	var node = instantiate_class(node_type)
+	if not node:
+		printerr("Failed to instantiate GUI node type: " + node_type)
+		return null
+
+	node.name = node_spec.get("name", node_type)
+	parent_node.add_child(node)
+	node.owner = scene_root
+
+	if node is Control:
+		if node_spec.has("anchor_preset"):
+			var preset_idx = _resolve_anchor_preset(node_spec.anchor_preset)
+			node.set_anchors_and_margins_preset(preset_idx, 0, 0)
+
+		if node_spec.has("margins") and node_spec.margins is Dictionary:
+			var margins = node_spec.margins
+			if margins.has("left"): node.margin_left = float(margins.left)
+			if margins.has("top"): node.margin_top = float(margins.top)
+			if margins.has("right"): node.margin_right = float(margins.right)
+			if margins.has("bottom"): node.margin_bottom = float(margins.bottom)
+
+		if node_spec.has("min_size") and node_spec.min_size is Dictionary:
+			var ms = node_spec.min_size
+			node.rect_min_size = Vector2(float(ms.get("x", 0.0)), float(ms.get("y", 0.0)))
+
+	if node_spec.has("properties") and node_spec.properties is Dictionary:
+		for prop in node_spec.properties:
+			node.set(prop, _coerce_property_value(node_spec.properties[prop]))
+
+	if node_spec.has("children") and node_spec.children is Array:
+		for child_spec in node_spec.children:
+			if child_spec is Dictionary:
+				_instantiate_gui_node(scene_root, node, child_spec)
+
+	return node
+
+func pipe_animation_states(params):
+	printerr("Piping animation states in scene: " + params.scene_path)
+	var scene_root = load_scene_instance(params.scene_path)
+	if not scene_root:
+		quit(1)
+		return
+
+	var tree_path = params.get("tree_path", "AnimationTree")
+	var anim_tree = find_node_by_path(scene_root, tree_path)
+	if not anim_tree:
+		log_error("AnimationTree node not found at path: " + tree_path)
+		quit(1)
+		return
+
+	if not (anim_tree is AnimationTree):
+		log_error("Node at " + tree_path + " is not an AnimationTree")
+		quit(1)
+		return
+
+	var state_machine = anim_tree.tree_root
+	if not (state_machine is AnimationNodeStateMachine):
+		state_machine = AnimationNodeStateMachine.new()
+		anim_tree.tree_root = state_machine
+
+	var states_added = []
+	if params.has("states") and params.states is Array:
+		for state in params.states:
+			if state is Dictionary and state.has("name") and state.has("anim_name"):
+				var name = state.name
+				var anim_name = state.anim_name
+				if state_machine.has_node(name):
+					state_machine.remove_node(name)
+				var node_anim = AnimationNodeAnimation.new()
+				node_anim.animation = anim_name
+				state_machine.add_node(name, node_anim)
+				states_added.append({"name": name, "anim_name": anim_name})
+
+	var transitions_linked = []
+	if params.has("transitions") and params.transitions is Array:
+		for trans in params.transitions:
+			if trans is Dictionary and trans.has("from") and trans.has("to"):
+				var from_state = trans.from
+				var to_state = trans.to
+				if state_machine.has_node(from_state) and state_machine.has_node(to_state):
+					var idx = state_machine.find_transition(from_state, to_state)
+					var transition = null
+					if idx != -1:
+						transition = state_machine.get_transition(idx)
+					else:
+						transition = AnimationNodeStateMachineTransition.new()
+						state_machine.add_transition(from_state, to_state, transition)
+					
+					if trans.has("xfade_time"):
+						transition.xfade_time = float(trans.xfade_time)
+					if trans.has("auto_advance"):
+						transition.auto_advance = bool(trans.auto_advance)
+					
+					transitions_linked.append({
+						"from": from_state,
+						"to": to_state,
+						"xfade_time": transition.xfade_time,
+						"auto_advance": transition.auto_advance
+					})
+
+	if params.get("active", true):
+		anim_tree.active = true
+
+	if save_scene_to_path(scene_root, params.scene_path):
+		var response = {
+			"treePath": tree_path,
+			"states_added": states_added,
+			"transitions_linked": transitions_linked,
+			"active": anim_tree.active,
+			"success": true
+		}
+		print(to_json(response))
+	else:
+		log_error("Failed to save scene after pipe_animation_states")
+		quit(1)
+		return
+
+func generate_gui_hierarchy(params):
+	printerr("Generating GUI hierarchy in scene: " + params.scene_path)
+	var scene_root = load_scene_instance(params.scene_path)
+	if not scene_root:
+		quit(1)
+		return
+
+	var parent_path = "root"
+	if params.has("parent_path") and params.parent_path != "":
+		parent_path = params.parent_path
+
+	var parent = find_node_by_path(scene_root, parent_path)
+	if not parent:
+		log_error("Parent node not found: " + parent_path)
+		quit(1)
+		return
+
+	var hierarchy = params.get("hierarchy")
+	if not hierarchy or not (hierarchy is Dictionary):
+		log_error("Hierarchy parameter must be a recursive layout dictionary")
+		quit(1)
+		return
+
+	var created_node = _instantiate_gui_node(scene_root, parent, hierarchy)
+	if not created_node:
+		log_error("Failed to instantiate GUI node tree hierarchy")
+		quit(1)
+		return
+
+	if save_scene_to_path(scene_root, params.scene_path):
+		var response = {
+			"scene_path": params.scene_path,
+			"parent_path": parent_path,
+			"root_node_name": created_node.name,
+			"root_node_path": parent_path + "/" + created_node.name,
+			"success": true
+		}
+		print(to_json(response))
+	else:
+		log_error("Failed to save scene after generate_gui_hierarchy")
+		quit(1)
+		return
 
